@@ -5,13 +5,13 @@
 **Target End:** January 1, 2025  
 **Status:** 🟡 In Progress
 
-### Progress: [0/7] tasks (0%)
+### Progress: [1/7] tasks (14%)
 
 #### ✅ Completed
-*No tasks completed yet*
+- [x] 1.3 Next.js project scaffold (completed: 2024-12-25 20:15 UTC)
 
 #### 🚧 In Progress
-- [ ] 1.3 Next.js project scaffold (started: 2024-12-25 17:55 UTC)
+- [ ] 1.1 Supabase project setup (started: 2024-12-25 20:15 UTC)
 
 #### 📋 TODO
 - [ ] 1.1 Supabase project setup
