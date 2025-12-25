@@ -11,7 +11,7 @@
 *No tasks completed yet*
 
 #### 🚧 In Progress
-*No tasks in progress yet*
+- [ ] 1.3 Next.js project scaffold (started: 2024-12-25 17:55 UTC)
 
 #### 📋 TODO
 - [ ] 1.1 Supabase project setup
