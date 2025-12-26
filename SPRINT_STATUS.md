@@ -1,82 +1,87 @@
 # Sprint Status
 
-## Current Sprint: Sprint 2 - Requester Flow
+## Current Sprint: Sprint 3 - Responder Flow
 
-**Started:** December 25, 2024
-**Target End:** January 1, 2025
-**Status:** In Progress
+**Started:** December 26, 2024
+**Target End:** January 2, 2025
+**Status:** Not Started
 
-### Progress: [7/9] tasks (78%)
+### Progress: [0/12] tasks (0%)
 
-#### DONE
-
-| # | Task | Status |
-|---|------|--------|
-| 2.1 | "Start feedback cycle" flow | Done |
-| 2.2 | Mode selection screen (Named/Anonymous) | Done |
-| 2.3 | Self-assessment form (6 skills) | Done |
-| 2.4 | Custom questions (optional, up to 2) | Done |
-| 2.5 | Save self-assessment | Done |
-| 2.6 | Invite peers form (1-10 emails) | Done |
-| 2.7 | Invitation records created | Done |
-
-#### IN PROGRESS
+#### TODO
 
 | # | Task | Status |
 |---|------|--------|
-| 2.8 | Dashboard shows cycle with status | Needs DB migration |
-| 2.9 | Cycle detail page | Needs DB migration |
+| 3.1 | Public respond page `/respond/[token]` | Pending |
+| 3.2 | Token validation (invalid → "Link not found") | Pending |
+| 3.3 | Expired token handling | Pending |
+| 3.4 | Pre-screen question ("How closely worked together?") | Pending |
+| 3.5 | Relationship selection (Team/Cross-functional/Manager/etc) | Pending |
+| 3.6 | Skill ratings form (6 skills + "Can't say") | Pending |
+| 3.7 | Open-ended questions (Keep doing, Improve, Anything else) | Pending |
+| 3.8 | Custom questions display | Pending |
+| 3.9 | Anonymous note (Named mode only) | Pending |
+| 3.10 | Submit response + confirmation | Pending |
+| 3.11 | Response count updates on dashboard | Pending |
+| 3.12 | Prevent double submit | Pending |
 
 ---
 
 ## Sprint Goal
 
-Create cycle, complete self-assessment, invite peers
+Responders can access form via token, submit feedback
 
 ---
 
 ## Acceptance Criteria
 
 ```
-1. Login to dashboard
-2. Click "Start feedback cycle"
-3. See two options: Named / Anonymous with explanations
-4. Select "Anonymous" and proceed
-5. See self-assessment form with 6 skills
-6. Rate yourself on each (dropdown: Bottom 20% to Top 20%)
-7. Optionally add 1-2 custom questions
-8. Click "Next"
-9. See invite form
-10. Enter 3 email addresses
-11. Click "Create invitations"
-12. Redirected to dashboard
-13. See your cycle: "Pending - 0 of 3 responses"
-14. Click into cycle to see detail view
-15. See list of invitations (emails, status: pending)
+1. Get an invitation token from Supabase (or cycle detail page)
+2. Open /respond/[token] in incognito (not logged in)
+3. See: "[Name] is looking for your feedback"
+4. Answer pre-screen: "How closely have you worked together?"
+5. Select relationship: "Team"
+6. See skill rating form
+7. Rate each skill (some "Can't say" is fine)
+8. Fill in "What should [Name] keep doing?" (min 10 chars)
+9. Fill in "What should [Name] improve?" (min 10 chars)
+10. Optionally fill "Anything else"
+11. If custom questions exist, answer them
+12. Click Submit
+13. See confirmation: "Thanks! Your feedback has been submitted."
+14. See "If 5 colleagues filled this out about you..." CTA
 
-Verify in Supabase:
-- feedback_cycles table has 1 row, mode='anonymous', status='pending'
-- self_assessments table has 1 row with your ratings
-- invitations table has 3 rows, status='pending'
+Back in main browser:
+15. Refresh cycle detail page
+16. See "1 of 3 responses"
+
+Try submitting again:
+17. Open same token link → "You've already submitted feedback"
+
+Test invalid token:
+18. Open /respond/invalid-uuid → "Link not found"
 ```
 
 ---
 
 ## Technical Notes
 
-- No emails sent yet (Sprint 5)
-- Invitations created but `sent_at` is null
-- Self-send template not implemented yet
+- Response writes use service role (bypasses RLS)
+- Trigger updates `responses_count` on cycle
+- Form validates min length on text fields
+- No auth required for respond page
 
 ---
 
-## Dependencies
+## Database Tables Needed
 
-- Sprint 1 complete (Auth, Dashboard)
-- Database schema already includes: feedback_cycles, self_assessments, invitations tables
+- `responses` table (new)
+- Update `invitations` status on submit
+- Trigger to increment `responses_count` on `feedback_cycles`
 
 ---
 
-## Previous Sprint
+## Previous Sprints
 
-See `SPRINT_1_COMPLETE.md` for Sprint 1 history.
+- `SPRINT_1_COMPLETE.md` - Foundation (Auth, Dashboard)
+- `SPRINT_2_COMPLETE.md` - Requester Flow
