@@ -4,26 +4,31 @@
 
 **Started:** December 26, 2024
 **Target End:** January 2, 2025
-**Status:** Not Started
+**Status:** In Progress
 
-### Progress: [0/12] tasks (0%)
+### Progress: [11/12] tasks (92%)
 
-#### TODO
+#### DONE
 
 | # | Task | Status |
 |---|------|--------|
-| 3.1 | Public respond page `/respond/[token]` | Pending |
-| 3.2 | Token validation (invalid → "Link not found") | Pending |
-| 3.3 | Expired token handling | Pending |
-| 3.4 | Pre-screen question ("How closely worked together?") | Pending |
-| 3.5 | Relationship selection (Team/Cross-functional/Manager/etc) | Pending |
-| 3.6 | Skill ratings form (6 skills + "Can't say") | Pending |
-| 3.7 | Open-ended questions (Keep doing, Improve, Anything else) | Pending |
-| 3.8 | Custom questions display | Pending |
-| 3.9 | Anonymous note (Named mode only) | Pending |
-| 3.10 | Submit response + confirmation | Pending |
-| 3.11 | Response count updates on dashboard | Pending |
-| 3.12 | Prevent double submit | Pending |
+| 3.1 | Public respond page `/respond/[token]` | Done |
+| 3.2 | Token validation (invalid → "Link not found") | Done |
+| 3.3 | Expired token handling | Done |
+| 3.4 | Pre-screen question ("How closely worked together?") | Done |
+| 3.5 | Relationship selection (Team/Cross-functional/Manager/etc) | Done |
+| 3.6 | Skill ratings form (6 skills + "Can't say") | Done |
+| 3.7 | Open-ended questions (Keep doing, Improve, Anything else) | Done |
+| 3.8 | Custom questions display | Done |
+| 3.9 | Anonymous note (Named mode only) | Done |
+| 3.10 | Submit response + confirmation | Done |
+| 3.12 | Prevent double submit | Done |
+
+#### NEEDS TESTING
+
+| # | Task | Status |
+|---|------|--------|
+| 3.11 | Response count updates on dashboard | Needs DB migration
 
 ---
 
