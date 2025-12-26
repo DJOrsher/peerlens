@@ -71,3 +71,7 @@ __tests__/coverage
 # Temporary files
 tmp/
 temp/
+# Windows metadata
+*:Zone.Identifier
+*:mshield
+*.save

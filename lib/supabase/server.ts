@@ -1,8 +1,13 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
-export function createClient() {
-  const cookieStore = cookies()
+/**
+ * Creates a Supabase client for server components/actions with user context.
+ * Uses the anon key and respects RLS policies.
+ */
+export async function createClient() {
+  const cookieStore = await cookies()
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,6 +35,24 @@ export function createClient() {
             // user sessions.
           }
         },
+      },
+    }
+  )
+}
+
+/**
+ * Creates a Supabase client with service role key.
+ * Bypasses RLS - use only for trusted server-side operations.
+ * Required for: writing responses (anonymity protection), admin operations.
+ */
+export function createServiceClient() {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
       },
     }
   )
