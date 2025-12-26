@@ -5,10 +5,12 @@ import { redirect } from 'next/navigation'
 import { requireAuth } from './auth'
 import type { FeedbackMode, SkillRating } from '@/types/database'
 
+const PM_TEMPLATE_ID = '00000000-0000-0000-0000-000000000001'
+
 /**
  * Create a new feedback cycle
  */
-export async function createCycle(mode: FeedbackMode) {
+export async function createCycle(mode: FeedbackMode, templateId: string = PM_TEMPLATE_ID) {
   const user = await requireAuth()
   const supabase = await createClient()
 
@@ -18,6 +20,7 @@ export async function createCycle(mode: FeedbackMode) {
       user_id: user.id,
       mode,
       status: 'pending',
+      template_id: templateId,
     })
     .select()
     .single()

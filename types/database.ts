@@ -185,3 +185,33 @@ export const SKILL_RATING_OPTIONS = [
   { value: 'top_20', label: 'Top 20%', description: 'Among the best I\'ve seen' },
   { value: 'cant_say', label: 'Can\'t say', description: 'I don\'t have enough visibility' },
 ] as const
+
+// ============================================
+// SKILL TEMPLATES
+// ============================================
+
+export interface SkillTemplate {
+  id: string
+  name: string
+  slug: string
+  description: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface SkillTemplateQuestion {
+  id: string
+  template_id: string
+  skill_key: string
+  skill_name: string
+  skill_description: string
+  question_order: number
+  use_for_self_assessment: boolean
+  use_for_peer_feedback: boolean
+  created_at: string
+}
+
+export interface SkillTemplateWithQuestions extends SkillTemplate {
+  questions: SkillTemplateQuestion[]
+}

@@ -1,8 +1,9 @@
 import { requireAuth } from '@/lib/actions/auth'
 import { getCycle, getSelfAssessment } from '@/lib/actions/cycles'
+import { getDefaultTemplate } from '@/lib/actions/templates'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
-import { SelfAssessmentForm } from './SelfAssessmentForm'
+import { SelfAssessmentWizard } from './SelfAssessmentWizard'
 
 interface Props {
   params: Promise<{ cycleId: string }>
@@ -17,7 +18,22 @@ export default async function SelfAssessmentPage({ params }: Props) {
     notFound()
   }
 
+  // Get template questions (for now, always use PM template)
+  const template = await getDefaultTemplate()
+  if (!template || template.questions.length === 0) {
+    // Fallback error state
+    return (
+      <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-xl font-semibold text-gray-900">Template not found</h1>
+          <p className="mt-2 text-gray-600">Please run the database migration to add skill templates.</p>
+        </div>
+      </main>
+    )
+  }
+
   const existingAssessment = await getSelfAssessment(cycleId)
+  const selfAssessmentQuestions = template.questions.filter(q => q.use_for_self_assessment)
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -36,40 +52,12 @@ export default async function SelfAssessmentPage({ params }: Props) {
         </div>
       </header>
 
-      {/* Progress indicator */}
-      <div className="border-b bg-white">
-        <div className="mx-auto max-w-4xl px-6 py-3">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-600 text-xs font-medium text-white">
-              1
-            </span>
-            <span className="font-medium text-gray-900">Self-assessment</span>
-            <span className="text-gray-300">→</span>
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-500">
-              2
-            </span>
-            <span className="text-gray-500">Invite peers</span>
-          </div>
-        </div>
-      </div>
-
       {/* Content */}
-      <div className="mx-auto max-w-2xl px-6 py-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Rate yourself honestly
-          </h1>
-          <p className="mt-2 text-gray-600">
-            This is just for comparison—no one else sees your self-ratings.
-            Be honest so you can spot the gaps between self-perception and peer perception.
-          </p>
-        </div>
-
-        <SelfAssessmentForm
-          cycleId={cycleId}
-          existingRatings={existingAssessment?.skill_ratings as Record<string, string> | undefined}
-        />
-      </div>
+      <SelfAssessmentWizard
+        cycleId={cycleId}
+        questions={selfAssessmentQuestions}
+        existingRatings={existingAssessment?.skill_ratings as Record<string, string> | undefined}
+      />
     </main>
   )
 }
