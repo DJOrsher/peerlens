@@ -2,21 +2,34 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { sendInvitations } from '@/lib/actions/cycles'
+import Link from 'next/link'
+import { sendInvitations, concludeCycle } from '@/lib/actions/cycles'
 
 interface Props {
   cycleId: string
+  cycleStatus: string
+  responsesCount: number
   hasUnsentInvitations: boolean
   invitationEmails: string[]
   requesterName?: string
 }
 
-export function CycleActions({ cycleId, hasUnsentInvitations, invitationEmails, requesterName = 'A colleague' }: Props) {
+export function CycleActions({
+  cycleId,
+  cycleStatus,
+  responsesCount,
+  hasUnsentInvitations,
+  invitationEmails,
+  requesterName = 'A colleague'
+}: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [showTemplate, setShowTemplate] = useState(false)
+  const [showConcludeConfirm, setShowConcludeConfirm] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [copied, setCopied] = useState(false)
+
+  const isConcluded = cycleStatus === 'concluded'
 
   const feedbackUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/respond/${cycleId}`
@@ -64,8 +77,45 @@ PeerLens`
     setTimeout(() => setCopied(false), 2000)
   }
 
+  async function handleConclude() {
+    startTransition(async () => {
+      const result = await concludeCycle(cycleId)
+
+      if (result.error) {
+        setMessage({ type: 'error', text: result.error })
+        setShowConcludeConfirm(false)
+        return
+      }
+
+      setMessage({ type: 'success', text: 'Cycle concluded! You can now view your report.' })
+      setShowConcludeConfirm(false)
+      router.refresh()
+    })
+  }
+
+  // Show "View Report" button if concluded
+  if (isConcluded) {
+    return (
+      <div className="mt-8 flex items-center justify-between rounded-lg border border-green-200 bg-green-50 p-6">
+        <div>
+          <h3 className="font-semibold text-green-900">Feedback cycle complete!</h3>
+          <p className="text-sm text-green-700">
+            You received {responsesCount} response{responsesCount !== 1 ? 's' : ''}. View your report to see the results.
+          </p>
+        </div>
+        <Link
+          href={`/report/${cycleId}`}
+          className="rounded-lg bg-green-600 px-6 py-2 font-medium text-white hover:bg-green-700"
+        >
+          View Report
+        </Link>
+      </div>
+    )
+  }
+
   return (
     <>
+      {/* Collect feedback actions */}
       <div className="mt-8 flex items-center justify-between rounded-lg border bg-white p-6">
         <div>
           <h3 className="font-semibold text-gray-900">Ready to collect feedback?</h3>
@@ -90,6 +140,24 @@ PeerLens`
             {isPending ? 'Sending...' : 'Send invitations'}
           </button>
         </div>
+      </div>
+
+      {/* Conclude cycle section */}
+      <div className="mt-4 flex items-center justify-between rounded-lg border bg-white p-6">
+        <div>
+          <h3 className="font-semibold text-gray-900">Done collecting feedback?</h3>
+          <p className="text-sm text-gray-500">
+            Conclude your cycle to view your feedback report.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowConcludeConfirm(true)}
+          disabled={isPending}
+          className="rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        >
+          Conclude cycle
+        </button>
       </div>
 
       {message && (
@@ -148,6 +216,41 @@ PeerLens`
                 className="rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700 hover:bg-gray-50"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Conclude Confirmation Modal */}
+      {showConcludeConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="mx-4 w-full max-w-md rounded-lg bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">Conclude feedback cycle?</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Once concluded, you won&apos;t be able to collect any more responses.
+              {responsesCount === 0 && (
+                <span className="mt-2 block font-medium text-amber-600">
+                  You haven&apos;t received any responses yet. Your report will be empty.
+                </span>
+              )}
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowConcludeConfirm(false)}
+                disabled={isPending}
+                className="flex-1 rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConclude}
+                disabled={isPending}
+                className="flex-1 rounded-lg bg-primary-600 px-4 py-2 font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+              >
+                {isPending ? 'Concluding...' : 'Conclude & View Report'}
               </button>
             </div>
           </div>

@@ -24,7 +24,7 @@ app/
 │   ├── page.tsx                       # User's cycles list
 │   └── cycle/[cycleId]/
 │       ├── page.tsx                   # Cycle detail (invitations, status)
-│       └── CycleActions.tsx           # Send invitations / template modal
+│       └── CycleActions.tsx           # Send invitations, conclude, view report
 ├── start/
 │   ├── page.tsx                       # Choose mode (anonymous/named)
 │   └── [cycleId]/
@@ -34,14 +34,20 @@ app/
 │       └── invite/
 │           ├── page.tsx               # Invite peers
 │           └── InviteForm.tsx
-└── respond/[token]/
-    ├── page.tsx                       # Public feedback form (no auth)
-    └── RespondWizard.tsx              # Multi-step responder form
+├── respond/[token]/
+│   ├── page.tsx                       # Public feedback form (no auth)
+│   └── RespondWizard.tsx              # Multi-step responder form
+└── report/[cycleId]/
+    ├── page.tsx                       # Report page (requires concluded cycle)
+    ├── SkillComparison.tsx            # Self vs peer rating comparison
+    ├── AnonymousReport.tsx            # Anonymous mode: aggregated view
+    └── NamedReport.tsx                # Named mode: individual responses
 
 lib/
 ├── actions/
 │   ├── auth.ts                        # requireAuth, signIn, signOut
-│   ├── cycles.ts                      # CRUD for cycles, invitations
+│   ├── cycles.ts                      # CRUD for cycles, invitations, conclude
+│   ├── report.ts                      # getReport (mode-aware generation)
 │   ├── respond.ts                     # Submit response (uses service role)
 │   └── templates.ts                   # Skill template queries
 ├── supabase/
@@ -64,7 +70,7 @@ types/
 | 1 | Foundation (Auth, Dashboard) | Done |
 | 2 | Requester Flow (Cycles, Self-Assessment, Invitations) | Done |
 | 3 | Responder Flow (Public form, Response submission) | Done |
-| 4 | Report Generation | Not started |
+| 4 | Report Generation | Done |
 | 5 | Email System (Resend) | Not started |
 | 6 | Conversion & Polish | Not started |
 
@@ -120,6 +126,20 @@ import { responseSchema, CONSTRAINTS } from '@/lib/validation'
 // CONSTRAINTS.FEEDBACK_TEXT_MIN = 10
 ```
 
+### Report Generation
+
+Reports are generated on-demand via `lib/actions/report.ts`:
+
+```typescript
+import { getReport } from '@/lib/actions/report'
+
+const result = await getReport(cycleId)
+// Returns { report: AnonymousReport | NamedReport } or { error: string }
+```
+
+**Anonymous mode:** Ratings aggregated, text shuffled, no attribution
+**Named mode:** Individual responses with attribution, anonymous notes collected separately
+
 ## Database Tables
 
 | Table | Purpose |
@@ -166,7 +186,6 @@ To test responder flow without sending emails:
 
 ## What's Not Implemented Yet
 
-- Report generation (`/report/[cycleId]`)
 - Email sending (Resend integration)
 - Nurture sequence (responder → requester conversion)
 - Payment (Stripe)

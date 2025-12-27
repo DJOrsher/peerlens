@@ -208,6 +208,8 @@ export default async function CycleDetailPage({ params }: Props) {
         {/* Actions */}
         <CycleActions
           cycleId={cycleId}
+          cycleStatus={cycle.status}
+          responsesCount={cycle.responses_count}
           hasUnsentInvitations={invitations.some(i => !i.sent_at)}
           invitationEmails={invitations.filter(i => !i.sent_at).map(i => i.email)}
         />

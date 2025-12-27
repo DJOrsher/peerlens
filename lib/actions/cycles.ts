@@ -348,3 +348,43 @@ export async function getCycleWithDetails(cycleId: string): Promise<CycleWithDet
     responses_count: responsesResult.count || 0,
   }
 }
+
+/**
+ * Conclude a feedback cycle (enables report viewing)
+ */
+export async function concludeCycle(cycleId: string) {
+  const user = await requireAuth()
+  const supabase = await createClient()
+
+  // Verify ownership and current status
+  const { data: cycle, error: fetchError } = await supabase
+    .from('feedback_cycles')
+    .select('id, status')
+    .eq('id', cycleId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (fetchError || !cycle) {
+    return { error: 'Cycle not found' }
+  }
+
+  if (cycle.status === 'concluded') {
+    return { error: 'Cycle is already concluded' }
+  }
+
+  // Update to concluded
+  const { error: updateError } = await supabase
+    .from('feedback_cycles')
+    .update({
+      status: 'concluded',
+      concluded_at: new Date().toISOString(),
+    })
+    .eq('id', cycleId)
+
+  if (updateError) {
+    console.error('Conclude cycle error:', updateError)
+    return { error: 'Failed to conclude cycle' }
+  }
+
+  return { success: true }
+}
