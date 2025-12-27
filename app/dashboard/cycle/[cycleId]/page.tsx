@@ -3,23 +3,10 @@ import { getCycleWithDetails } from '@/lib/actions/cycles'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { PM_SKILLS, SKILL_RATING_OPTIONS } from '@/types/database'
+import { CycleActions } from './CycleActions'
 
 interface Props {
   params: Promise<{ cycleId: string }>
-}
-
-interface Invitation {
-  id: string
-  email: string
-  status: string
-  sent_at: string | null
-  responded_at: string | null
-  reminder_count: number
-}
-
-interface CustomQuestion {
-  id: string
-  question_text: string
 }
 
 export default async function CycleDetailPage({ params }: Props) {
@@ -31,12 +18,7 @@ export default async function CycleDetailPage({ params }: Props) {
     notFound()
   }
 
-  const invitations = (cycle.invitations || []) as Invitation[]
-  const selfAssessment = cycle.self_assessment
-  const customQuestions = (cycle.custom_questions || []) as CustomQuestion[]
-
-  // Response counts
-  const responseCount = cycle.responses_count || 0
+  const { invitations, self_assessment: selfAssessment, custom_questions: customQuestions } = cycle
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -224,26 +206,11 @@ export default async function CycleDetailPage({ params }: Props) {
         )}
 
         {/* Actions */}
-        <div className="mt-8 flex items-center justify-between rounded-lg border bg-white p-6">
-          <div>
-            <h3 className="font-semibold text-gray-900">Ready to collect feedback?</h3>
-            <p className="text-sm text-gray-500">
-              Send invitations to your peers or get a template to send yourself.
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <button
-              className="rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Get template
-            </button>
-            <button
-              className="rounded-lg bg-primary-600 px-4 py-2 font-medium text-white hover:bg-primary-700"
-            >
-              Send invitations
-            </button>
-          </div>
-        </div>
+        <CycleActions
+          cycleId={cycleId}
+          hasUnsentInvitations={invitations.some(i => !i.sent_at)}
+          invitationEmails={invitations.filter(i => !i.sent_at).map(i => i.email)}
+        />
       </div>
     </main>
   )

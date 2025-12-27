@@ -1,7 +1,26 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import type { ClosenessLevel, RelationshipType, SkillRating } from '@/types/database'
+import { responseSchema, getFirstError } from '@/lib/validation'
+import type { ResponseInput } from '@/lib/validation'
+import type { FeedbackMode } from '@/types/database'
+
+// Type for the joined query result from Supabase
+interface InvitationQueryResult {
+  id: string
+  token: string
+  email: string
+  status: string
+  cycle: {
+    id: string
+    mode: FeedbackMode
+    template_id: string
+    user: {
+      email: string
+      name: string | null
+    }
+  }
+}
 
 export interface InvitationWithCycle {
   id: string
@@ -10,23 +29,12 @@ export interface InvitationWithCycle {
   status: string
   cycle: {
     id: string
-    mode: 'anonymous' | 'named'
+    mode: FeedbackMode
     user_email: string
     user_name: string | null
     template_id: string
   }
   has_responded: boolean
-}
-
-export interface ResponseData {
-  closeness: ClosenessLevel
-  relationship: RelationshipType
-  skill_ratings: Record<string, SkillRating>
-  keep_doing: string
-  improve: string
-  anything_else?: string
-  custom_answers?: string[]
-  anonymous_note?: string
 }
 
 /**
@@ -66,26 +74,27 @@ export async function getInvitationByToken(token: string): Promise<InvitationWit
     return null
   }
 
+  // Type the result properly
+  const typedInvitation = invitation as unknown as InvitationQueryResult
+
   // Check if already responded
   const { data: existingResponse } = await supabase
     .from('responses')
     .select('id')
-    .eq('invitation_id', invitation.id)
+    .eq('invitation_id', typedInvitation.id)
     .single()
 
-  const cycle = invitation.cycle as any
-
   return {
-    id: invitation.id,
-    token: invitation.token,
-    email: invitation.email,
-    status: invitation.status,
+    id: typedInvitation.id,
+    token: typedInvitation.token,
+    email: typedInvitation.email,
+    status: typedInvitation.status,
     cycle: {
-      id: cycle.id,
-      mode: cycle.mode,
-      template_id: cycle.template_id,
-      user_email: cycle.user.email,
-      user_name: cycle.user.name,
+      id: typedInvitation.cycle.id,
+      mode: typedInvitation.cycle.mode,
+      template_id: typedInvitation.cycle.template_id,
+      user_email: typedInvitation.cycle.user.email,
+      user_name: typedInvitation.cycle.user.name,
     },
     has_responded: !!existingResponse,
   }
@@ -135,16 +144,14 @@ export async function getCustomQuestionsForCycle(cycleId: string) {
 /**
  * Submit a response (public - no auth required)
  */
-export async function submitResponse(invitationId: string, data: ResponseData) {
-  const supabase = await createClient()
+export async function submitResponse(invitationId: string, data: ResponseInput) {
+  // Validate with Zod
+  const validated = responseSchema.safeParse(data)
+  if (!validated.success) {
+    return { error: getFirstError(validated) }
+  }
 
-  // Validate minimum text lengths
-  if (data.keep_doing.trim().length < 10) {
-    return { error: 'Please provide at least 10 characters for "What to keep doing"' }
-  }
-  if (data.improve.trim().length < 10) {
-    return { error: 'Please provide at least 10 characters for "What to improve"' }
-  }
+  const supabase = await createClient()
 
   // Check if already responded (double-submit prevention)
   const { data: existingResponse } = await supabase
@@ -162,14 +169,14 @@ export async function submitResponse(invitationId: string, data: ResponseData) {
     .from('responses')
     .insert({
       invitation_id: invitationId,
-      closeness: data.closeness,
-      relationship: data.relationship,
-      skill_ratings: data.skill_ratings,
-      keep_doing: data.keep_doing.trim(),
-      improve: data.improve.trim(),
-      anything_else: data.anything_else?.trim() || null,
-      custom_answers: data.custom_answers || [],
-      anonymous_note: data.anonymous_note?.trim() || null,
+      closeness: validated.data.closeness,
+      relationship: validated.data.relationship,
+      skill_ratings: validated.data.skill_ratings,
+      keep_doing: validated.data.keep_doing.trim(),
+      improve: validated.data.improve.trim(),
+      anything_else: validated.data.anything_else?.trim() || null,
+      custom_answers: validated.data.custom_answers || [],
+      anonymous_note: validated.data.anonymous_note?.trim() || null,
     })
 
   if (error) {

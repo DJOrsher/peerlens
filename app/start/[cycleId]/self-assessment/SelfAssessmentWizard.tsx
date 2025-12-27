@@ -4,7 +4,11 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveSelfAssessment, saveCustomQuestions } from '@/lib/actions/cycles'
 import { SKILL_RATING_OPTIONS } from '@/types/database'
+import { RadioGroup } from '@/components/ui/RadioGroup'
 import type { SkillRating, SkillTemplateQuestion } from '@/types/database'
+
+// Self-assessment excludes "can't say" option
+const SELF_RATING_OPTIONS = SKILL_RATING_OPTIONS.filter(opt => opt.value !== 'cant_say')
 
 interface Props {
   cycleId: string
@@ -128,34 +132,12 @@ export function SelfAssessmentWizard({ cycleId, questions, existingRatings }: Pr
               </p>
             </div>
 
-            <div className="space-y-3">
-              {SKILL_RATING_OPTIONS.filter(opt => opt.value !== 'cant_say').map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => handleRatingSelect(option.value as SkillRating)}
-                  className={`w-full flex items-center gap-4 rounded-lg border p-4 text-left transition-all ${
-                    currentRating === option.value
-                      ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-500'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
-                    currentRating === option.value
-                      ? 'border-primary-600 bg-primary-600'
-                      : 'border-gray-300'
-                  }`}>
-                    {currentRating === option.value && (
-                      <div className="h-2 w-2 rounded-full bg-white" />
-                    )}
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-900">{option.label}</span>
-                    <span className="ml-2 text-gray-500">— {option.description}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
+            <RadioGroup
+              options={SELF_RATING_OPTIONS}
+              value={currentRating || ''}
+              onChange={handleRatingSelect}
+              name="skill-rating"
+            />
           </>
         ) : (
           <>

@@ -215,3 +215,31 @@ export interface SkillTemplateQuestion {
 export interface SkillTemplateWithQuestions extends SkillTemplate {
   questions: SkillTemplateQuestion[]
 }
+
+// Cycle details types (for getCycleWithDetails)
+export interface CycleInvitation {
+  id: string
+  email: string
+  status: string
+  sent_at: string | null
+  responded_at: string | null
+  reminder_count: number
+}
+
+export interface CycleCustomQuestion {
+  id: string
+  question_text: string
+  question_order: number
+}
+
+export interface CycleWithDetails {
+  id: string
+  user_id: string
+  mode: FeedbackMode
+  status: string
+  created_at: string
+  invitations: CycleInvitation[]
+  self_assessment: SelfAssessment | null
+  custom_questions: CycleCustomQuestion[]
+  responses_count: number
+}

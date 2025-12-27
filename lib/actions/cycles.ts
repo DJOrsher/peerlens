@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { requireAuth } from './auth'
-import type { FeedbackMode, SkillRating } from '@/types/database'
+import type { FeedbackMode, SkillRating, CycleWithDetails, CycleInvitation, CycleCustomQuestion } from '@/types/database'
 
 const PM_TEMPLATE_ID = '00000000-0000-0000-0000-000000000001'
 
@@ -251,9 +251,66 @@ export async function getInvitations(cycleId: string) {
 }
 
 /**
+ * Send invitations for a cycle (marks them as sent)
+ */
+export async function sendInvitations(cycleId: string) {
+  const user = await requireAuth()
+  const supabase = await createClient()
+
+  // Verify cycle ownership
+  const cycle = await getCycle(cycleId)
+  if (!cycle) {
+    return { error: 'Cycle not found' }
+  }
+
+  // Get unsent invitations
+  const { data: invitations, error: fetchError } = await supabase
+    .from('invitations')
+    .select('id, email')
+    .eq('cycle_id', cycleId)
+    .is('sent_at', null)
+
+  if (fetchError) {
+    console.error('Fetch invitations error:', fetchError)
+    return { error: 'Failed to fetch invitations' }
+  }
+
+  if (!invitations || invitations.length === 0) {
+    return { error: 'No unsent invitations found' }
+  }
+
+  // Mark invitations as sent
+  const { error: updateError } = await supabase
+    .from('invitations')
+    .update({ sent_at: new Date().toISOString() })
+    .eq('cycle_id', cycleId)
+    .is('sent_at', null)
+
+  if (updateError) {
+    console.error('Update invitations error:', updateError)
+    return { error: 'Failed to update invitations' }
+  }
+
+  // Update cycle status to active
+  await supabase
+    .from('feedback_cycles')
+    .update({ status: 'active' })
+    .eq('id', cycleId)
+
+  // TODO: Actually send emails via email service
+  // For now, just mark as sent
+
+  return {
+    success: true,
+    count: invitations.length,
+    emails: invitations.map(i => i.email)
+  }
+}
+
+/**
  * Get cycle with all related data
  */
-export async function getCycleWithDetails(cycleId: string) {
+export async function getCycleWithDetails(cycleId: string): Promise<CycleWithDetails | null> {
   const user = await requireAuth()
   const supabase = await createClient()
 
@@ -268,16 +325,26 @@ export async function getCycleWithDetails(cycleId: string) {
     return null
   }
 
-  const [selfAssessment, customQuestions, invitations] = await Promise.all([
+  const [selfAssessment, customQuestions, invitations, responsesResult] = await Promise.all([
     getSelfAssessment(cycleId),
     getCustomQuestions(cycleId),
     getInvitations(cycleId),
+    supabase
+      .from('invitations')
+      .select('id', { count: 'exact' })
+      .eq('cycle_id', cycleId)
+      .eq('status', 'responded'),
   ])
 
   return {
-    ...cycle,
+    id: cycle.id,
+    user_id: cycle.user_id,
+    mode: cycle.mode as FeedbackMode,
+    status: cycle.status,
+    created_at: cycle.created_at,
     self_assessment: selfAssessment,
-    custom_questions: customQuestions,
-    invitations,
+    custom_questions: customQuestions as CycleCustomQuestion[],
+    invitations: invitations as CycleInvitation[],
+    responses_count: responsesResult.count || 0,
   }
 }

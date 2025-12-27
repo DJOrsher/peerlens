@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { submitResponse } from '@/lib/actions/respond'
 import { SKILL_RATING_OPTIONS } from '@/types/database'
+import { RadioGroup } from '@/components/ui/RadioGroup'
 import type { ClosenessLevel, RelationshipType, SkillRating, SkillTemplateQuestion } from '@/types/database'
 
 interface CustomQuestion {
@@ -218,60 +219,24 @@ export function RespondWizard({ invitationId, requesterName, cycleMode, question
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   How closely have you worked with {requesterName}?
                 </label>
-                <div className="space-y-2">
-                  {CLOSENESS_OPTIONS.map(option => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => setCloseness(option.value)}
-                      className={`w-full flex items-center gap-3 rounded-lg border p-4 text-left transition-all ${
-                        closeness === option.value
-                          ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-500'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
-                        closeness === option.value ? 'border-primary-600 bg-primary-600' : 'border-gray-300'
-                      }`}>
-                        {closeness === option.value && <div className="h-2 w-2 rounded-full bg-white" />}
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-900">{option.label}</span>
-                        <span className="ml-2 text-gray-500">— {option.description}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                <RadioGroup
+                  options={CLOSENESS_OPTIONS}
+                  value={closeness}
+                  onChange={setCloseness}
+                  name="closeness"
+                />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   What&apos;s your working relationship?
                 </label>
-                <div className="space-y-2">
-                  {RELATIONSHIP_OPTIONS.map(option => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => setRelationship(option.value)}
-                      className={`w-full flex items-center gap-3 rounded-lg border p-4 text-left transition-all ${
-                        relationship === option.value
-                          ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-500'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
-                        relationship === option.value ? 'border-primary-600 bg-primary-600' : 'border-gray-300'
-                      }`}>
-                        {relationship === option.value && <div className="h-2 w-2 rounded-full bg-white" />}
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-900">{option.label}</span>
-                        <span className="ml-2 text-gray-500">— {option.description}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                <RadioGroup
+                  options={RELATIONSHIP_OPTIONS}
+                  value={relationship}
+                  onChange={setRelationship}
+                  name="relationship"
+                />
               </div>
             </div>
           </>
@@ -293,37 +258,15 @@ export function RespondWizard({ invitationId, requesterName, cycleMode, question
               Compared to other professionals you&apos;ve worked with, how would you rate {requesterName}?
             </p>
 
-            <div className="space-y-2">
-              {SKILL_RATING_OPTIONS.map(option => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setSkillRatings(prev => ({
-                    ...prev,
-                    [questions[currentSkillIndex].skill_key]: option.value as SkillRating
-                  }))}
-                  className={`w-full flex items-center gap-3 rounded-lg border p-4 text-left transition-all ${
-                    skillRatings[questions[currentSkillIndex].skill_key] === option.value
-                      ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-500'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
-                    skillRatings[questions[currentSkillIndex].skill_key] === option.value
-                      ? 'border-primary-600 bg-primary-600'
-                      : 'border-gray-300'
-                  }`}>
-                    {skillRatings[questions[currentSkillIndex].skill_key] === option.value && (
-                      <div className="h-2 w-2 rounded-full bg-white" />
-                    )}
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-900">{option.label}</span>
-                    <span className="ml-2 text-gray-500">— {option.description}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
+            <RadioGroup
+              options={SKILL_RATING_OPTIONS}
+              value={skillRatings[questions[currentSkillIndex].skill_key] || ''}
+              onChange={(value) => setSkillRatings(prev => ({
+                ...prev,
+                [questions[currentSkillIndex].skill_key]: value as SkillRating
+              }))}
+              name="skill-rating"
+            />
           </>
         )}
 
