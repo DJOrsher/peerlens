@@ -1,5 +1,51 @@
 # PeerLens - Claude Context
 
+## Git Workflow (MUST FOLLOW)
+
+**Branch Strategy:**
+```
+feature/* → staging → main
+    ↓          ↓        ↓
+ Preview   Staging  Production
+```
+
+| Branch | Environment | URL |
+|--------|-------------|-----|
+| `main` | Production | peerlens.app |
+| `staging` | Staging | staging.peerlens.app |
+| `feature/*` | Preview | *.vercel.app |
+
+**Rules Claude MUST follow:**
+
+1. **NEVER commit directly to `main`** - Always use PRs
+2. **NEVER commit directly to `staging`** - Always use PRs
+3. **Create feature branches from `staging`**, not from `main`
+4. **All changes go through this flow:**
+   - Create `feature/branch-name` from `staging`
+   - Commit changes to feature branch
+   - Push and create PR to `staging`
+   - After staging is tested, create PR from `staging` to `main`
+
+5. **Hotfixes only:** For critical production bugs, create `hotfix/*` from `main`, then merge back to both `main` AND `staging`
+
+**Example workflow:**
+```bash
+# Start new work
+git checkout staging
+git pull origin staging
+git checkout -b feature/my-feature
+
+# Make changes, commit
+git add .
+git commit -m "feat: add feature"
+git push -u origin feature/my-feature
+
+# Then create PR: feature/my-feature → staging
+# After staging approval: staging → main
+```
+
+---
+
 ## What This Is
 
 Peer feedback tool for Product Managers. Users rate themselves on 6 skills, invite peers to provide anonymous/named feedback, then receive a report comparing self-perception to peer perception.
@@ -84,15 +130,16 @@ types/
 | 3 | Responder Flow (Public form, Response submission) | Done |
 | 4 | Report Generation | Done |
 | 5 | Email System (Resend) | Done |
-| 6 | Conversion & Polish | **Next** |
+| 6 | Conversion & Polish | Done |
 
-### Sprint 5 Completed Features
-- **Email integration**: Resend with peerlens.app domain
-- **Email templates**: Invite, reminder (max 2), report-ready
-- **Webhook handling**: Bounces mark invitation as bounced, spam complaints unsubscribe + admin alert
-- **Shared links**: `/respond/c/[cycleToken]` for manual sharing (Slack, etc.)
-- **Real-time polling**: Response count updates every 30 seconds
-- **Per-invitation reminders**: Max 2 reminders enforced in UI
+### Sprint 6 Completed Features
+- **Cron jobs**: Auto-conclude (5 days, 0 responses), expire invitations (30 days), nurture emails
+- **Conversion CTA**: Post-response signup prompt with email capture
+- **Nurture sequence**: Day 7, 21, 42 emails with unsubscribe flow
+- **Loading states**: Skeleton loaders for all main pages
+- **Error handling**: Global error boundary and 404 page
+- **Mobile responsive**: Fixed grid layouts for mobile
+- **CI/CD**: GitHub Actions + Vercel staging/production environments
 
 ## Key Concepts
 
@@ -225,34 +272,14 @@ To test responder flow:
 - **Shared link (user-sent):** Copy link from cycle detail page, visit `/respond/c/[cycleToken]`
 - **Personal link (system-sent):** Get invitation token from Supabase, visit `/respond/[token]`
 
-## What's Not Implemented Yet (Sprint 6)
+## Post-MVP Features (Not Yet Implemented)
 
-**Sprint 6 - Conversion & Polish:**
-
-*Cron Jobs (carried from Sprint 5):*
-- Auto-conclude cron (5 days, 0 responses → conclude + email)
-- Expire invitations cron (30 days → mark expired)
-- No responses email notification
-
-*Conversion Flow:*
-- Post-submit conversion CTA ("Start now" / "Remind me later")
-- "Remind me later" → email capture to `nurture_leads` table
-- Nurture sequence (Day 7, 21, 42 emails via cron)
-- Unsubscribe flow
-
-*Polish:*
-- Error handling improvements
-- Loading states on all forms
-- Mobile responsive polish
-- Landing page improvements
-- Production deploy (Vercel + production env vars)
-
-**Post-MVP:**
-- Payment (Stripe)
+- Payment (Stripe) - $50 to request feedback cycle
 - 30-day follow-up email
 - Text generalization for anonymity
 - Multiple cycles history view
 - Account deletion flow
+- Analytics dashboard
 
 ## Reference Docs
 
