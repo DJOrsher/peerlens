@@ -1,14 +1,72 @@
+/* Font imports */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
+
 @import "tailwindcss";
 
 @theme {
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93bbfc;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
+  /* Semantic colors - Cream Classic palette */
+  --color-paper: #FFFBF5;
+  --color-ink: #3D3929;
+  --color-subtle: #8B7E66;
+  --color-border: #E8E0D4;
+  --color-accent: #6B5D47;
+  --color-accent-hover: #4A4133;
+
+  /* Legacy primary for compatibility */
+  --color-primary-50: #FFFBF5;
+  --color-primary-100: #F5EFE6;
+  --color-primary-200: #E8E0D4;
+  --color-primary-300: #D4C9B8;
+  --color-primary-400: #8B7E66;
+  --color-primary-500: #6B5D47;
+  --color-primary-600: #4A4133;
+  --color-primary-700: #3D3929;
+  --color-primary-800: #2C2A1F;
+  --color-primary-900: #1A1914;
+
+  /* Font families */
+  --font-serif: 'Libre Baskerville', serif;
+  --font-sans: 'Inter', sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-paper text-ink antialiased;
+    font-family: var(--font-serif);
+  }
+
+  /* Selection styling */
+  ::selection {
+    @apply bg-primary-200 text-ink;
+  }
+
+  /* Headings - elegant, classic weight */
+  h1, h2, h3 {
+    @apply font-normal;
+    font-family: var(--font-serif);
+  }
+
+  /* UI elements use sans-serif */
+  button, label, input, select, textarea {
+    font-family: var(--font-sans);
+  }
+}
+
+@layer components {
+  /* Classic button - understated elegance */
+  .btn-ghost {
+    @apply text-[10px] tracking-[0.25em] uppercase border-b border-border pb-2 transition-all duration-500 text-subtle hover:border-ink hover:text-ink;
+    font-family: var(--font-sans);
+  }
+
+  /* Primary button - rich and warm */
+  .btn-primary {
+    @apply bg-accent text-paper px-8 py-4 text-[10px] uppercase tracking-[0.25em] hover:bg-accent-hover transition-all duration-500;
+    font-family: var(--font-sans);
+  }
+
+  /* Editorial input - simple underline */
+  .input-serious {
+    @apply w-full bg-transparent border-b border-border focus:border-accent focus:ring-0 py-4 text-lg leading-relaxed outline-none transition-colors duration-500 placeholder:text-subtle/40 text-ink;
+  }
 }
