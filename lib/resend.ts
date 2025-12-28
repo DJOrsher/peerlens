@@ -11,6 +11,9 @@ export type EmailType =
   | 'report_ready'
   | 'no_responses'
   | 'admin_alert'
+  | 'nurture_1'
+  | 'nurture_2'
+  | 'nurture_3'
 
 interface SendEmailParams {
   to: string
