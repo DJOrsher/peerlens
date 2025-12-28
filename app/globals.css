@@ -1,14 +1,72 @@
+/* Font imports */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,300;1,8..60,400&display=swap');
+
 @import "tailwindcss";
 
 @theme {
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93bbfc;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
+  /* Semantic colors - Cool Slate palette */
+  --color-paper: #F8FAFC;
+  --color-ink: #334155;
+  --color-subtle: #94A3B8;
+  --color-border: #E2E8F0;
+  --color-accent: #475569;
+  --color-accent-hover: #334155;
+
+  /* Legacy primary for compatibility */
+  --color-primary-50: #F8FAFC;
+  --color-primary-100: #F1F5F9;
+  --color-primary-200: #E2E8F0;
+  --color-primary-300: #CBD5E1;
+  --color-primary-400: #94A3B8;
+  --color-primary-500: #64748B;
+  --color-primary-600: #475569;
+  --color-primary-700: #334155;
+  --color-primary-800: #1E293B;
+  --color-primary-900: #0F172A;
+
+  /* Font families */
+  --font-serif: 'Source Serif 4', serif;
+  --font-sans: 'Inter', sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-paper text-ink antialiased;
+    font-family: var(--font-serif);
+  }
+
+  /* Selection styling */
+  ::selection {
+    @apply bg-primary-200 text-ink;
+  }
+
+  /* Headings - medium weight, tight tracking */
+  h1, h2, h3 {
+    @apply font-normal tracking-tight;
+    font-family: var(--font-serif);
+  }
+
+  /* UI elements use sans-serif */
+  button, label, input, select, textarea {
+    font-family: var(--font-sans);
+  }
+}
+
+@layer components {
+  /* Outlined button - crisp, modern */
+  .btn-ghost {
+    @apply text-xs tracking-[0.15em] uppercase border border-border px-6 py-3 transition-all duration-300 text-subtle hover:border-ink hover:text-ink rounded;
+    font-family: var(--font-sans);
+  }
+
+  /* Primary button - slate solid */
+  .btn-primary {
+    @apply bg-accent text-white px-6 py-3 text-xs uppercase tracking-widest hover:bg-accent-hover transition-all duration-300 rounded;
+    font-family: var(--font-sans);
+  }
+
+  /* Clean input - bottom-bordered */
+  .input-serious {
+    @apply w-full bg-transparent border-b border-border focus:border-accent focus:ring-0 p-4 text-lg leading-relaxed outline-none transition-colors duration-300 placeholder:text-subtle/50 text-ink;
+  }
 }
