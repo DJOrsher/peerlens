@@ -10,7 +10,7 @@ Peer feedback tool for Product Managers. Users rate themselves on 6 skills, invi
 
 - **Framework:** Next.js 16 (App Router, Server Actions, RSC)
 - **Database:** Supabase (PostgreSQL + RLS + Auth)
-- **Email:** Resend (not yet implemented)
+- **Email:** Resend (peerlens.app domain)
 - **Hosting:** Vercel
 - **Validation:** Zod
 
@@ -20,11 +20,16 @@ Peer feedback tool for Product Managers. Users rate themselves on 6 skills, invi
 app/
 ├── page.tsx                           # Landing page
 ├── login/page.tsx                     # Magic link auth
+├── api/
+│   └── webhooks/resend/route.ts       # Resend webhook handler (bounces, complaints)
 ├── dashboard/
 │   ├── page.tsx                       # User's cycles list
 │   └── cycle/[cycleId]/
 │       ├── page.tsx                   # Cycle detail (invitations, status)
-│       └── CycleActions.tsx           # Send invitations, conclude, view report
+│       ├── CycleActions.tsx           # Send invitations, conclude, view report
+│       ├── InvitationItem.tsx         # Individual invitation with reminder button
+│       ├── ShareLink.tsx              # Shared link display + copy
+│       └── ResponseProgress.tsx       # Real-time response count polling
 ├── start/
 │   ├── page.tsx                       # Choose mode (anonymous/named)
 │   └── [cycleId]/
@@ -39,7 +44,8 @@ app/
 │   │   ├── page.tsx                   # Public feedback form (no auth)
 │   │   └── RespondWizard.tsx          # Multi-step responder form
 │   └── c/[cycleToken]/                # Shared cycle link (user-sent)
-│       └── page.tsx                   # Asks for identity, then feedback
+│       ├── page.tsx                   # Asks for identity, then feedback
+│       └── SharedRespondWizard.tsx    # Shared link responder form
 └── report/[cycleId]/
     ├── page.tsx                       # Report page (requires concluded cycle)
     ├── SkillComparison.tsx            # Self vs peer rating comparison
@@ -49,10 +55,13 @@ app/
 lib/
 ├── actions/
 │   ├── auth.ts                        # requireAuth, signIn, signOut
-│   ├── cycles.ts                      # CRUD for cycles, invitations, conclude
+│   ├── cycles.ts                      # CRUD for cycles, invitations, email sending
 │   ├── report.ts                      # getReport (mode-aware generation)
 │   ├── respond.ts                     # Submit response (uses service role)
 │   └── templates.ts                   # Skill template queries
+├── emails/
+│   └── templates.ts                   # Email templates (invite, reminder, report-ready)
+├── resend.ts                          # Resend client, sendEmail, logEmailEvent
 ├── supabase/
 │   ├── server.ts                      # createClient, createServiceClient
 │   └── client.ts                      # Browser client (unused)
@@ -74,14 +83,16 @@ types/
 | 2 | Requester Flow (Cycles, Self-Assessment, Invitations) | Done |
 | 3 | Responder Flow (Public form, Response submission) | Done |
 | 4 | Report Generation | Done |
-| 5 | Email System (Resend) | **Next** |
-| 6 | Conversion & Polish | Not started |
+| 5 | Email System (Resend) | Done |
+| 6 | Conversion & Polish | **Next** |
 
-### Recent Additions (Post-Sprint 4)
-- **Dual-token system**: Per-invitation tokens for system emails + per-cycle shared token for manual sharing
-- **Polling**: Cycle detail page auto-refreshes response count every 30 seconds
-- **Individual responses in reports**: Anonymous mode now shows individual responses (shuffled, no identity); Named mode shows with attribution
-- **Auto-advance wizard**: Self-assessment skill questions auto-advance on selection
+### Sprint 5 Completed Features
+- **Email integration**: Resend with peerlens.app domain
+- **Email templates**: Invite, reminder (max 2), report-ready
+- **Webhook handling**: Bounces mark invitation as bounced, spam complaints unsubscribe + admin alert
+- **Shared links**: `/respond/c/[cycleToken]` for manual sharing (Slack, etc.)
+- **Real-time polling**: Response count updates every 30 seconds
+- **Per-invitation reminders**: Max 2 reminders enforced in UI
 
 ## Key Concepts
 
@@ -214,32 +225,34 @@ To test responder flow:
 - **Shared link (user-sent):** Copy link from cycle detail page, visit `/respond/c/[cycleToken]`
 - **Personal link (system-sent):** Get invitation token from Supabase, visit `/respond/[token]`
 
-## What's Not Implemented Yet (Sprint 5+)
-
-**Sprint 5 - Email System:**
-- Resend integration (domain setup, API)
-- Invite email template + send feature
-- Reminder email template + send feature (max 2 per invitation)
-- Report ready email (on conclude)
-- No responses email (cron, 5 days with 0 responses)
-- Webhook handler (bounce/complaint handling)
-- Admin notifications
+## What's Not Implemented Yet (Sprint 6)
 
 **Sprint 6 - Conversion & Polish:**
+
+*Cron Jobs (carried from Sprint 5):*
+- Auto-conclude cron (5 days, 0 responses → conclude + email)
+- Expire invitations cron (30 days → mark expired)
+- No responses email notification
+
+*Conversion Flow:*
 - Post-submit conversion CTA ("Start now" / "Remind me later")
-- Nurture sequence (Day 7, 21, 42 emails)
+- "Remind me later" → email capture to `nurture_leads` table
+- Nurture sequence (Day 7, 21, 42 emails via cron)
 - Unsubscribe flow
-- Auto-conclude cron (5 days, 0 responses)
-- Expire invitations cron (30 days)
-- Error handling polish
+
+*Polish:*
+- Error handling improvements
+- Loading states on all forms
 - Mobile responsive polish
-- Landing page
-- Production deploy
+- Landing page improvements
+- Production deploy (Vercel + production env vars)
 
 **Post-MVP:**
 - Payment (Stripe)
 - 30-day follow-up email
 - Text generalization for anonymity
+- Multiple cycles history view
+- Account deletion flow
 
 ## Reference Docs
 

@@ -513,8 +513,6 @@ export async function concludeCycle(cycleId: string) {
   const user = await requireAuth()
   const supabase = await createClient()
 
-  console.log('[concludeCycle] Starting for cycleId:', cycleId, 'userId:', user.id)
-
   // Verify ownership and current status
   const { data: cycle, error: fetchError } = await supabase
     .from('feedback_cycles')
@@ -523,8 +521,6 @@ export async function concludeCycle(cycleId: string) {
     .eq('user_id', user.id)
     .single()
 
-  console.log('[concludeCycle] Cycle query result:', { cycle, fetchError })
-
   // Get invitation count separately
   const { count: invitationsCount } = await supabase
     .from('invitations')
@@ -532,7 +528,6 @@ export async function concludeCycle(cycleId: string) {
     .eq('cycle_id', cycleId)
 
   if (fetchError || !cycle) {
-    console.log('[concludeCycle] Returning error - fetchError:', fetchError, 'cycle:', cycle)
     return { error: 'Cycle not found' }
   }
 
@@ -541,7 +536,6 @@ export async function concludeCycle(cycleId: string) {
   }
 
   // Update to concluded
-  console.log('[concludeCycle] Updating cycle to concluded')
   const { error: updateError } = await supabase
     .from('feedback_cycles')
     .update({
@@ -549,10 +543,8 @@ export async function concludeCycle(cycleId: string) {
     })
     .eq('id', cycleId)
 
-  console.log('[concludeCycle] Update result:', { updateError })
-
   if (updateError) {
-    console.error('[concludeCycle] Update failed:', updateError)
+    console.error('Conclude cycle error:', updateError)
     return { error: 'Failed to conclude cycle' }
   }
 
@@ -587,9 +579,8 @@ export async function concludeCycle(cycleId: string) {
     }
   } catch (error) {
     // Don't fail the conclude if email fails
-    console.error('[concludeCycle] Failed to send report ready email:', error)
+    console.error('Failed to send report ready email:', error)
   }
 
-  console.log('[concludeCycle] Success!')
   return { success: true }
 }

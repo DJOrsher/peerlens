@@ -610,12 +610,28 @@ After each sprint, run through these:
   - Auto-advance on skill selection in self-assessment wizard
 
 ### Sprint 5 Checklist
-- [ ] Invite email received (in inbox, not spam)
-- [ ] Links in email work
-- [ ] Reminder email works
-- [ ] Max 2 reminders enforced
-- [ ] Report ready email works
-- [ ] Bounces handled
+- [x] Invite email received (in inbox, not spam)
+- [x] Links in email work
+- [x] Reminder email works
+- [x] Max 2 reminders enforced
+- [x] Report ready email works
+- [x] Bounces handled
+- [x] Shared link support for anonymous responders
+- [x] Real-time response count polling
+
+**Sprint 5 Completion Notes (Dec 2024):**
+- Resend integration fully working (domain: peerlens.app)
+- Email templates: invite, reminder, report-ready
+- Webhook handler for bounces and spam complaints
+- Shared link (`/respond/c/[cycleToken]`) for sharing on Slack/social
+- Per-invitation reminders with max 2 enforced
+- Real-time polling for response counts (30-second interval)
+- Fixed database schema mismatches throughout
+
+**Remaining from Sprint 5 (moved to Sprint 6):**
+- Cron jobs for auto-conclude (5 days, 0 responses)
+- Cron jobs for expiring old invitations (30 days)
+- No responses email notification
 
 ### Sprint 6 Checklist
 - [ ] Conversion CTA shows after submit
