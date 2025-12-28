@@ -1,14 +1,72 @@
+/* Font imports */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&display=swap');
+
 @import "tailwindcss";
 
 @theme {
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93bbfc;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
+  /* Semantic colors - Warm Stone palette */
+  --color-paper: #FAF9F6;
+  --color-ink: #44403C;
+  --color-subtle: #A8A29E;
+  --color-border: #E7E5E4;
+  --color-accent: #78716C;
+  --color-accent-hover: #57534E;
+
+  /* Legacy primary for compatibility */
+  --color-primary-50: #FAF9F6;
+  --color-primary-100: #F5F5F4;
+  --color-primary-200: #E7E5E4;
+  --color-primary-300: #D6D3D1;
+  --color-primary-400: #A8A29E;
+  --color-primary-500: #78716C;
+  --color-primary-600: #57534E;
+  --color-primary-700: #44403C;
+  --color-primary-800: #292524;
+  --color-primary-900: #1C1917;
+
+  /* Font families */
+  --font-serif: 'Merriweather', serif;
+  --font-sans: 'Inter', sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-paper text-ink antialiased;
+    font-family: var(--font-serif);
+  }
+
+  /* Selection styling */
+  ::selection {
+    @apply bg-border text-ink;
+  }
+
+  /* Headings - lighter weight, tighter tracking */
+  h1, h2, h3 {
+    @apply font-light tracking-tight;
+    font-family: var(--font-serif);
+  }
+
+  /* UI elements use sans-serif */
+  button, label, input, select, textarea {
+    font-family: var(--font-sans);
+  }
+}
+
+@layer components {
+  /* Ghost button - understated, professional */
+  .btn-ghost {
+    @apply text-[11px] tracking-[0.2em] uppercase border border-border px-8 py-4 transition-all duration-500 text-subtle hover:border-ink hover:text-ink;
+    font-family: var(--font-sans);
+  }
+
+  /* Primary button - solid but warm */
+  .btn-primary {
+    @apply bg-accent text-paper px-8 py-4 text-[11px] uppercase tracking-widest hover:bg-accent-hover transition-all duration-500;
+    font-family: var(--font-sans);
+  }
+
+  /* Serious input - minimal, left-bordered */
+  .input-serious {
+    @apply w-full bg-transparent border-l-2 border-border focus:border-subtle focus:ring-0 p-6 text-lg leading-relaxed outline-none transition-colors duration-500 placeholder:text-subtle/50 text-ink;
+  }
 }
