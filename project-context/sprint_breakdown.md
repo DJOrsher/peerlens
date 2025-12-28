@@ -240,6 +240,11 @@ Test invalid token:
 
 **Goal:** All emails working (invites, reminders, notifications)
 
+**Prerequisites:**
+- Resend account created
+- Domain for sending (e.g., `mail.peerlens.com`)
+- DNS access for SPF/DKIM/DMARC records
+
 ### Deliverables
 
 | # | Task | Test |
@@ -256,6 +261,95 @@ Test invalid token:
 | 5.10 | Resend webhook handler | Receive and log events |
 | 5.11 | Bounce handling | Mark invitation as bounced |
 | 5.12 | Admin notifications | Email to admin on bounce/complaint |
+
+### Implementation Plan
+
+**Phase 1: Setup (5.1-5.2)**
+```
+Files to create:
+- lib/resend.ts              # Resend client + sendEmail helper
+- lib/emails/templates.ts    # HTML/text email templates
+
+Environment variables needed:
+- RESEND_API_KEY
+- RESEND_WEBHOOK_SECRET
+- ADMIN_EMAIL
+```
+
+**Phase 2: Invite Flow (5.3-5.5)**
+```
+Files to modify:
+- lib/actions/cycles.ts      # Add sendInvitationEmails action
+- app/dashboard/cycle/[cycleId]/CycleActions.tsx  # Wire up "Send" button
+
+New files:
+- lib/emails/invite.tsx      # Invite email template (React Email or HTML)
+
+Flow:
+1. User clicks "Send invitations" on cycle page
+2. sendInvitationEmails() fetches unsent invitations
+3. For each: send email via Resend, update sent_at
+4. Update UI to show "Sent" status
+```
+
+**Phase 3: Reminders (5.6-5.7)**
+```
+Files to modify:
+- lib/actions/cycles.ts      # Add sendReminder action
+- app/dashboard/cycle/[cycleId]/page.tsx  # Add reminder button per invitation
+
+New files:
+- lib/emails/reminder.tsx    # Reminder email template
+
+Constraints:
+- Max 2 reminders per invitation (check reminder_count)
+- Different subject/body than invite
+```
+
+**Phase 4: Report Ready (5.8)**
+```
+Files to modify:
+- lib/actions/cycles.ts      # concludeCycle() triggers email
+
+New files:
+- lib/emails/report-ready.tsx
+
+Flow:
+1. User concludes cycle
+2. After status update, send "Your feedback report is ready" email
+3. Include link to /report/[cycleId]
+```
+
+**Phase 5: Webhooks & Bounce Handling (5.9-5.12)**
+```
+New files:
+- app/api/webhooks/resend/route.ts  # Webhook handler
+- lib/admin-notify.ts               # Admin notification helper
+
+Webhook events to handle:
+- email.delivered → log
+- email.opened → log
+- email.clicked → log
+- email.bounced → mark invitation as bounced, notify admin
+- email.complained → remove from all emails, notify admin urgently
+```
+
+**Phase 6: Cron Jobs (5.9)**
+```
+New files:
+- app/api/cron/no-responses/route.ts
+
+vercel.json:
+{
+  "crons": [
+    { "path": "/api/cron/no-responses", "schedule": "0 10 * * *" }
+  ]
+}
+
+Logic:
+- Find cycles: status='pending', responses_count=0, created_at < 5 days ago
+- For each: send "no responses" email, auto-conclude
+```
 
 ### Acceptance Criteria
 
@@ -498,12 +592,22 @@ After each sprint, run through these:
 - [ ] Invalid token handled
 
 ### Sprint 4 Checklist
-- [ ] Conclude cycle works
-- [ ] Anonymous report shows aggregated data
-- [ ] Named report shows individual data
-- [ ] Gaps displayed correctly
-- [ ] Text is shuffled (anonymous)
-- [ ] Can't access others' reports
+- [x] Conclude cycle works
+- [x] Anonymous report shows aggregated data
+- [x] Named report shows individual data
+- [x] Gaps displayed correctly
+- [x] Text is shuffled (anonymous)
+- [x] Can't access others' reports
+
+**Sprint 4 Completion Notes (Dec 2024):**
+- Report generation fully implemented with mode-aware logic
+- Anonymous mode: aggregated ratings + shuffled open-ended + individual responses (no identity)
+- Named mode: individual responses with attribution + anonymous notes section
+- Added post-Sprint 4 enhancements:
+  - Dual-token system (per-invitation + per-cycle shared token)
+  - Polling for response count updates (30-second interval)
+  - Individual responses visible in anonymous mode (shuffled, no identity)
+  - Auto-advance on skill selection in self-assessment wizard
 
 ### Sprint 5 Checklist
 - [ ] Invite email received (in inbox, not spam)

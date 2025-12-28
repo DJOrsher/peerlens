@@ -4,6 +4,9 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { PM_SKILLS, SKILL_RATING_OPTIONS } from '@/types/database'
 import { CycleActions } from './CycleActions'
+import { ShareLink } from './ShareLink'
+import { ResponseProgress } from './ResponseProgress'
+import { InvitationItem } from './InvitationItem'
 
 interface Props {
   params: Promise<{ cycleId: string }>
@@ -74,24 +77,17 @@ export default async function CycleDetailPage({ params }: Props) {
         </div>
 
         {/* Response progress */}
-        <div className="mt-8 rounded-lg border bg-white p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Responses</h2>
-            <span className="text-2xl font-bold text-primary-600">
-              {cycle.responses_count} of {invitations.length}
-            </span>
-          </div>
-          {invitations.length > 0 && (
-            <div className="mt-4">
-              <div className="h-3 overflow-hidden rounded-full bg-gray-200">
-                <div
-                  className="h-full rounded-full bg-primary-600 transition-all"
-                  style={{ width: `${(cycle.responses_count / invitations.length) * 100}%` }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
+        <ResponseProgress
+          cycleId={cycleId}
+          initialCount={cycle.responses_count}
+          totalInvitations={invitations.length}
+          isActive={cycle.status === 'active'}
+        />
+
+        {/* Share link */}
+        {cycle.status !== 'concluded' && (
+          <ShareLink sharedToken={cycle.shared_token} />
+        )}
 
         {/* Invitations list */}
         <div className="mt-6 rounded-lg border bg-white">
@@ -118,50 +114,11 @@ export default async function CycleDetailPage({ params }: Props) {
           ) : (
             <div className="divide-y">
               {invitations.map((invitation) => (
-                <div
+                <InvitationItem
                   key={invitation.id}
-                  className="flex items-center justify-between px-6 py-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                      invitation.status === 'responded'
-                        ? 'bg-green-100'
-                        : 'bg-gray-100'
-                    }`}>
-                      {invitation.status === 'responded' ? (
-                        <svg className="h-4 w-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      ) : (
-                        <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{invitation.email}</p>
-                      <p className="text-sm text-gray-500">
-                        {invitation.status === 'responded'
-                          ? `Responded ${invitation.responded_at ? new Date(invitation.responded_at).toLocaleDateString() : ''}`
-                          : invitation.sent_at
-                          ? `Sent ${new Date(invitation.sent_at).toLocaleDateString()}`
-                          : 'Not sent yet'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {invitation.status === 'pending' && !invitation.sent_at && (
-                      <span className="text-sm text-gray-500">
-                        Ready to send
-                      </span>
-                    )}
-                    {invitation.reminder_count > 0 && (
-                      <span className="text-xs text-gray-400">
-                        {invitation.reminder_count} reminder{invitation.reminder_count > 1 ? 's' : ''} sent
-                      </span>
-                    )}
-                  </div>
-                </div>
+                  invitation={invitation}
+                  cycleStatus={cycle.status}
+                />
               ))}
             </div>
           )}

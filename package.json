@@ -30,6 +30,7 @@
     "react-dom": "^19.2.3",
     "react-hook-form": "^7.69.0",
     "resend": "^6.6.0",
+    "svix": "^1.82.0",
     "zod": "^4.2.1"
   },
   "devDependencies": {

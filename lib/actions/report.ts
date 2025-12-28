@@ -33,6 +33,16 @@ export interface PeerRatingData {
   response_count: number
 }
 
+export interface AnonymousResponseData {
+  relationship: string
+  closeness: string
+  skill_ratings: Record<string, SkillRating>
+  keep_doing: string
+  improve: string
+  anything_else: string | null
+  custom_answers: string[]
+}
+
 export interface AnonymousReport {
   mode: 'anonymous'
   responses_count: number
@@ -47,6 +57,7 @@ export interface AnonymousReport {
   }
   custom_questions: string[]
   custom_answers: Record<string, string[]>
+  responses: AnonymousResponseData[]
 }
 
 export interface NamedResponseData {
@@ -87,17 +98,19 @@ export async function getReport(cycleId: string): Promise<ReportResult> {
   const user = await requireAuth()
   const supabase = await createClient()
 
-  // Get cycle with self-assessment
+  // Get cycle with self-assessment and custom questions
   const { data: cycle, error: cycleError } = await supabase
     .from('feedback_cycles')
     .select(`
       id,
       mode,
       status,
-      invitations_count,
       self_assessments (
-        skill_ratings,
-        custom_questions
+        skill_ratings
+      ),
+      custom_questions (
+        question_text,
+        question_order
       )
     `)
     .eq('id', cycleId)
@@ -105,16 +118,26 @@ export async function getReport(cycleId: string): Promise<ReportResult> {
     .single()
 
   if (cycleError || !cycle) {
+    console.error('[getReport] Cycle query error:', cycleError)
     return { error: 'Cycle not found' }
   }
+
+  // Get invitation count separately
+  const { count: invitationsCount } = await supabase
+    .from('invitations')
+    .select('*', { count: 'exact', head: true })
+    .eq('cycle_id', cycleId)
 
   if (cycle.status !== 'concluded') {
     return { error: 'Cycle is not concluded yet' }
   }
 
   // Get responses using service role (bypasses RLS)
+  // We need to get both invitation-based and shared-link responses
   const serviceSupabase = await createServiceClient()
-  const { data: responses, error: responsesError } = await serviceSupabase
+
+  // Get responses via invitation
+  const { data: invitationResponses, error: invError } = await serviceSupabase
     .from('responses')
     .select(`
       closeness,
@@ -127,23 +150,61 @@ export async function getReport(cycleId: string): Promise<ReportResult> {
       custom_answers,
       invitation:invitations!inner (
         cycle_id,
-        email,
-        name
+        email
       )
     `)
     .eq('invitation.cycle_id', cycleId)
 
-  if (responsesError) {
-    console.error('Get responses error:', responsesError)
+  // Get responses via shared link (direct cycle_id)
+  const { data: sharedResponses, error: sharedError } = await serviceSupabase
+    .from('responses')
+    .select(`
+      closeness,
+      relationship,
+      skill_ratings,
+      keep_doing,
+      improve,
+      anything_else,
+      anonymous_note,
+      custom_answers,
+      responder_email,
+      responder_name
+    `)
+    .eq('cycle_id', cycleId)
+    .is('invitation_id', null)
+
+  if (invError || sharedError) {
+    console.error('Get responses error:', invError || sharedError)
     return { error: 'Failed to load responses' }
   }
+
+  // Normalize responses to a common format
+  // Note: Supabase returns joined relations as objects (via !inner), not arrays
+  const responses = [
+    ...(invitationResponses || []).map(r => {
+      const inv = r.invitation as { email?: string } | null
+      return {
+        ...r,
+        responder_email: inv?.email || null,
+        responder_name: null, // Invitations don't store names
+      }
+    }),
+    ...(sharedResponses || []),
+  ]
 
   const selfAssessment = Array.isArray(cycle.self_assessments)
     ? cycle.self_assessments[0]
     : cycle.self_assessments
 
   const selfRatings = (selfAssessment?.skill_ratings || {}) as Record<string, SkillRating>
-  const customQuestions = (selfAssessment?.custom_questions || []) as string[]
+
+  // Extract custom questions from the joined table, sorted by order
+  const customQuestionsData = Array.isArray(cycle.custom_questions)
+    ? cycle.custom_questions
+    : []
+  const customQuestions = customQuestionsData
+    .sort((a: any, b: any) => (a.question_order || 0) - (b.question_order || 0))
+    .map((q: any) => q.question_text) as string[]
 
   // Generate report based on mode
   if (cycle.mode === 'named') {
@@ -152,7 +213,7 @@ export async function getReport(cycleId: string): Promise<ReportResult> {
         responses || [],
         selfRatings,
         customQuestions,
-        cycle.invitations_count || 0
+        invitationsCount || 0
       ),
     }
   } else {
@@ -161,7 +222,7 @@ export async function getReport(cycleId: string): Promise<ReportResult> {
         responses || [],
         selfRatings,
         customQuestions,
-        cycle.invitations_count || 0
+        invitationsCount || 0
       ),
     }
   }
@@ -230,6 +291,19 @@ function generateAnonymousReport(
     customAnswers[customQuestions[i]] = shuffleArray(answers)
   }
 
+  // Individual responses (shuffled to prevent order-based identification, no identity info)
+  const anonymousResponses: AnonymousResponseData[] = shuffleArray(
+    responses.map(r => ({
+      relationship: r.relationship,
+      closeness: r.closeness,
+      skill_ratings: r.skill_ratings || {},
+      keep_doing: r.keep_doing,
+      improve: r.improve,
+      anything_else: r.anything_else,
+      custom_answers: r.custom_answers || [],
+    }))
+  )
+
   return {
     mode: 'anonymous',
     responses_count: responses.length,
@@ -244,6 +318,7 @@ function generateAnonymousReport(
     },
     custom_questions: customQuestions,
     custom_answers: customAnswers,
+    responses: anonymousResponses,
   }
 }
 
@@ -259,10 +334,11 @@ function generateNamedReport(
   )
 
   // Map individual responses with attribution
+  // Uses normalized responder_email/responder_name from both invitation and shared-link responses
   const namedResponses: NamedResponseData[] = responses.map(r => ({
     from: {
-      email: r.invitation?.email || 'Unknown',
-      name: r.invitation?.name || null,
+      email: r.responder_email || 'Anonymous',
+      name: r.responder_name || null,
     },
     relationship: r.relationship,
     closeness: r.closeness,

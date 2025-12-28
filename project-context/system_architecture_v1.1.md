@@ -145,6 +145,38 @@ What to improve:
 
 ---
 
+## 2.1 Invitation Link System (Dual-Token)
+
+The product supports two methods for sharing feedback links:
+
+### System-Sent Emails (Per-Invitation Token)
+
+- Each invitation record has a unique `token`
+- System sends personalized email to each peer
+- URL: `/respond/[token]`
+- Full tracking: know exactly who responded
+- Used when requester wants system to handle email delivery
+
+### User-Shared Link (Per-Cycle Token)
+
+- Each cycle has a single `shared_token`
+- Requester copies link and shares manually (Slack, email, etc.)
+- URL: `/respond/c/[cycleToken]`
+- Responders optionally provide name/email
+- If responder identifies → tracked (in named mode, shown with attribution)
+- If responder doesn't identify → anonymous response
+- Used when requester prefers manual sharing
+
+| Aspect | Per-Invitation | Shared Cycle |
+|--------|---------------|--------------|
+| URL | `/respond/[token]` | `/respond/c/[cycleToken]` |
+| Uniqueness | Per peer | Per cycle |
+| Tracking | Full (who responded) | Optional (responder chooses) |
+| Delivery | System sends email | User shares manually |
+| Identity | Pre-filled from invitation | Responder enters (optional) |
+
+---
+
 ## 3. Database Schema
 
 ### Updated Entity Relationship Diagram
@@ -222,19 +254,22 @@ CREATE TYPE cycle_status AS ENUM (
 CREATE TABLE feedback_cycles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  
+
   mode feedback_mode NOT NULL DEFAULT 'anonymous',
   status cycle_status DEFAULT 'draft',
-  
+
+  -- Shared token for user-distributed links (one per cycle)
+  shared_token UUID UNIQUE DEFAULT gen_random_uuid(),
+
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   concluded_at TIMESTAMPTZ,
   report_viewed_at TIMESTAMPTZ,
-  
+
   -- Denormalized counts
   invitations_count INT DEFAULT 0,
   responses_count INT DEFAULT 0,
-  
+
   -- Auto-conclude after 5 days with 0 responses
   auto_conclude_at TIMESTAMPTZ
 );
@@ -314,23 +349,33 @@ CREATE TYPE closeness_level AS ENUM (
 
 CREATE TABLE responses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  invitation_id UUID UNIQUE NOT NULL REFERENCES invitations(id) ON DELETE CASCADE,
-  
+
+  -- Either invitation_id (system-sent) or cycle_id (shared link) - one must be set
+  invitation_id UUID UNIQUE REFERENCES invitations(id) ON DELETE CASCADE,
+  cycle_id UUID REFERENCES feedback_cycles(id) ON DELETE CASCADE,
+
+  -- For shared-link responses: optional responder identity
+  responder_email TEXT,
+  responder_name TEXT,
+
   closeness closeness_level NOT NULL,
   relationship relationship_type NOT NULL,
-  
+
   skill_ratings JSONB NOT NULL DEFAULT '{}',
-  
+
   keep_doing TEXT NOT NULL,
   improve TEXT NOT NULL,
   anything_else TEXT,
-  
+
   -- For Named mode: optional anonymous section
   anonymous_note TEXT,
-  
+
   custom_answers TEXT[] DEFAULT '{}',
-  
-  created_at TIMESTAMPTZ DEFAULT NOW()
+
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+
+  -- Ensure either invitation_id or cycle_id is set
+  CONSTRAINT response_source CHECK (invitation_id IS NOT NULL OR cycle_id IS NOT NULL)
 );
 
 -- ============================================

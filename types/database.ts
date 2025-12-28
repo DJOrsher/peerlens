@@ -238,6 +238,7 @@ export interface CycleWithDetails {
   mode: FeedbackMode
   status: string
   created_at: string
+  shared_token: string
   invitations: CycleInvitation[]
   self_assessment: SelfAssessment | null
   custom_questions: CycleCustomQuestion[]

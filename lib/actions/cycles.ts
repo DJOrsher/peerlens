@@ -251,22 +251,38 @@ export async function getInvitations(cycleId: string) {
 }
 
 /**
- * Send invitations for a cycle (marks them as sent)
+ * Send invitations for a cycle (sends emails via Resend)
  */
 export async function sendInvitations(cycleId: string) {
   const user = await requireAuth()
   const supabase = await createClient()
 
-  // Verify cycle ownership
-  const cycle = await getCycle(cycleId)
-  if (!cycle) {
+  // Get cycle with mode
+  const { data: cycle, error: cycleError } = await supabase
+    .from('feedback_cycles')
+    .select('id, mode, user_id')
+    .eq('id', cycleId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (cycleError || !cycle) {
     return { error: 'Cycle not found' }
   }
 
-  // Get unsent invitations
+  // Get user info for email template
+  const { data: userData } = await supabase
+    .from('users')
+    .select('email, name')
+    .eq('id', user.id)
+    .single()
+
+  const requesterName = userData?.name || userData?.email?.split('@')[0] || 'A colleague'
+  const requesterEmail = userData?.email || user.email || ''
+
+  // Get unsent invitations with tokens
   const { data: invitations, error: fetchError } = await supabase
     .from('invitations')
-    .select('id, email')
+    .select('id, email, token')
     .eq('cycle_id', cycleId)
     .is('sent_at', null)
 
@@ -279,31 +295,155 @@ export async function sendInvitations(cycleId: string) {
     return { error: 'No unsent invitations found' }
   }
 
-  // Mark invitations as sent
-  const { error: updateError } = await supabase
-    .from('invitations')
-    .update({ sent_at: new Date().toISOString() })
-    .eq('cycle_id', cycleId)
-    .is('sent_at', null)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://peerlens.app'
+  const isAnonymous = cycle.mode === 'anonymous'
 
-  if (updateError) {
-    console.error('Update invitations error:', updateError)
-    return { error: 'Failed to update invitations' }
+  // Send emails to each invitation
+  const { sendEmail } = await import('@/lib/resend')
+  const { inviteEmail } = await import('@/lib/emails/templates')
+
+  let successCount = 0
+  const failedEmails: string[] = []
+
+  for (const invitation of invitations) {
+    const respondLink = `${appUrl}/respond/${invitation.token}`
+    const template = inviteEmail({
+      requesterName,
+      requesterEmail,
+      respondLink,
+      isAnonymous,
+    })
+
+    try {
+      await sendEmail({
+        to: invitation.email,
+        subject: template.subject,
+        html: template.html,
+        text: template.text,
+        type: 'invite',
+        metadata: { cycleId, invitationId: invitation.id },
+      })
+
+      // Mark this invitation as sent
+      await supabase
+        .from('invitations')
+        .update({ sent_at: new Date().toISOString(), sent_via: 'product' })
+        .eq('id', invitation.id)
+
+      successCount++
+    } catch (error) {
+      console.error(`Failed to send invite to ${invitation.email}:`, error)
+      failedEmails.push(invitation.email)
+    }
   }
 
-  // Update cycle status to active
-  await supabase
-    .from('feedback_cycles')
-    .update({ status: 'active' })
-    .eq('id', cycleId)
+  // Update cycle status to active if any emails sent
+  if (successCount > 0) {
+    await supabase
+      .from('feedback_cycles')
+      .update({ status: 'active' })
+      .eq('id', cycleId)
+  }
 
-  // TODO: Actually send emails via email service
-  // For now, just mark as sent
+  if (failedEmails.length > 0) {
+    return {
+      success: true,
+      count: successCount,
+      emails: invitations.filter(i => !failedEmails.includes(i.email)).map(i => i.email),
+      warning: `Failed to send to: ${failedEmails.join(', ')}`,
+    }
+  }
 
   return {
     success: true,
-    count: invitations.length,
-    emails: invitations.map(i => i.email)
+    count: successCount,
+    emails: invitations.map(i => i.email),
+  }
+}
+
+/**
+ * Send a reminder for a specific invitation (max 2 per invitation)
+ */
+export async function sendReminder(invitationId: string) {
+  const user = await requireAuth()
+  const supabase = await createClient()
+
+  // Get invitation and verify cycle ownership
+  const { data: invitation, error: invError } = await supabase
+    .from('invitations')
+    .select(`
+      id, email, token, reminder_count, status,
+      cycle:feedback_cycles!inner(id, mode, user_id)
+    `)
+    .eq('id', invitationId)
+    .single()
+
+  if (invError || !invitation) {
+    return { error: 'Invitation not found' }
+  }
+
+  // Type assertion for the joined cycle
+  const cycle = invitation.cycle as unknown as { id: string; mode: string; user_id: string }
+
+  if (cycle.user_id !== user.id) {
+    return { error: 'Unauthorized' }
+  }
+
+  if (invitation.status !== 'pending') {
+    return { error: 'Cannot send reminder - invitation is not pending' }
+  }
+
+  if (invitation.reminder_count >= 2) {
+    return { error: 'Maximum reminders (2) already sent' }
+  }
+
+  // Get user info for email template
+  const { data: userData } = await supabase
+    .from('users')
+    .select('email, name')
+    .eq('id', user.id)
+    .single()
+
+  const requesterName = userData?.name || userData?.email?.split('@')[0] || 'A colleague'
+  const requesterEmail = userData?.email || user.email || ''
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://peerlens.app'
+  const respondLink = `${appUrl}/respond/${invitation.token}`
+
+  // Send reminder email
+  const { sendEmail } = await import('@/lib/resend')
+  const { reminderEmail } = await import('@/lib/emails/templates')
+
+  const template = reminderEmail({
+    requesterName,
+    requesterEmail,
+    respondLink,
+    reminderNumber: invitation.reminder_count + 1,
+  })
+
+  try {
+    await sendEmail({
+      to: invitation.email,
+      subject: template.subject,
+      html: template.html,
+      text: template.text,
+      type: 'reminder',
+      metadata: { cycleId: cycle.id, invitationId: invitation.id },
+    })
+
+    // Update reminder count
+    await supabase
+      .from('invitations')
+      .update({
+        reminder_count: invitation.reminder_count + 1,
+        last_reminder_at: new Date().toISOString(),
+      })
+      .eq('id', invitationId)
+
+    return { success: true, reminderCount: invitation.reminder_count + 1 }
+  } catch (error) {
+    console.error('Failed to send reminder:', error)
+    return { error: 'Failed to send reminder email' }
   }
 }
 
@@ -325,15 +465,10 @@ export async function getCycleWithDetails(cycleId: string): Promise<CycleWithDet
     return null
   }
 
-  const [selfAssessment, customQuestions, invitations, responsesResult] = await Promise.all([
+  const [selfAssessment, customQuestions, invitations] = await Promise.all([
     getSelfAssessment(cycleId),
     getCustomQuestions(cycleId),
     getInvitations(cycleId),
-    supabase
-      .from('invitations')
-      .select('id', { count: 'exact' })
-      .eq('cycle_id', cycleId)
-      .eq('status', 'responded'),
   ])
 
   return {
@@ -342,11 +477,33 @@ export async function getCycleWithDetails(cycleId: string): Promise<CycleWithDet
     mode: cycle.mode as FeedbackMode,
     status: cycle.status,
     created_at: cycle.created_at,
+    shared_token: cycle.shared_token,
     self_assessment: selfAssessment,
     custom_questions: customQuestions as CycleCustomQuestion[],
     invitations: invitations as CycleInvitation[],
-    responses_count: responsesResult.count || 0,
+    responses_count: cycle.responses_count || 0,
   }
+}
+
+/**
+ * Get response count for a cycle (for polling)
+ */
+export async function getResponseCount(cycleId: string): Promise<number | null> {
+  const user = await requireAuth()
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('feedback_cycles')
+    .select('responses_count')
+    .eq('id', cycleId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (error || !data) {
+    return null
+  }
+
+  return data.responses_count ?? 0
 }
 
 /**
@@ -356,15 +513,26 @@ export async function concludeCycle(cycleId: string) {
   const user = await requireAuth()
   const supabase = await createClient()
 
+  console.log('[concludeCycle] Starting for cycleId:', cycleId, 'userId:', user.id)
+
   // Verify ownership and current status
   const { data: cycle, error: fetchError } = await supabase
     .from('feedback_cycles')
-    .select('id, status')
+    .select('id, status, responses_count')
     .eq('id', cycleId)
     .eq('user_id', user.id)
     .single()
 
+  console.log('[concludeCycle] Cycle query result:', { cycle, fetchError })
+
+  // Get invitation count separately
+  const { count: invitationsCount } = await supabase
+    .from('invitations')
+    .select('*', { count: 'exact', head: true })
+    .eq('cycle_id', cycleId)
+
   if (fetchError || !cycle) {
+    console.log('[concludeCycle] Returning error - fetchError:', fetchError, 'cycle:', cycle)
     return { error: 'Cycle not found' }
   }
 
@@ -373,18 +541,55 @@ export async function concludeCycle(cycleId: string) {
   }
 
   // Update to concluded
+  console.log('[concludeCycle] Updating cycle to concluded')
   const { error: updateError } = await supabase
     .from('feedback_cycles')
     .update({
       status: 'concluded',
-      concluded_at: new Date().toISOString(),
     })
     .eq('id', cycleId)
 
+  console.log('[concludeCycle] Update result:', { updateError })
+
   if (updateError) {
-    console.error('Conclude cycle error:', updateError)
+    console.error('[concludeCycle] Update failed:', updateError)
     return { error: 'Failed to conclude cycle' }
   }
 
+  // Send "report ready" email to requester
+  try {
+    const { data: userData } = await supabase
+      .from('users')
+      .select('email, name')
+      .eq('id', user.id)
+      .single()
+
+    if (userData?.email) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://peerlens.app'
+      const { sendEmail } = await import('@/lib/resend')
+      const { reportReadyEmail } = await import('@/lib/emails/templates')
+
+      const template = reportReadyEmail({
+        userName: userData.name || '',
+        responsesCount: cycle.responses_count || 0,
+        invitationsCount: invitationsCount || 0,
+        reportLink: `${appUrl}/report/${cycleId}`,
+      })
+
+      await sendEmail({
+        to: userData.email,
+        subject: template.subject,
+        html: template.html,
+        text: template.text,
+        type: 'report_ready',
+        metadata: { cycleId },
+      })
+    }
+  } catch (error) {
+    // Don't fail the conclude if email fails
+    console.error('[concludeCycle] Failed to send report ready email:', error)
+  }
+
+  console.log('[concludeCycle] Success!')
   return { success: true }
 }

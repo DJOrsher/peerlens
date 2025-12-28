@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveSelfAssessment, saveCustomQuestions } from '@/lib/actions/cycles'
 import { SKILL_RATING_OPTIONS } from '@/types/database'
@@ -21,6 +21,7 @@ export function SelfAssessmentWizard({ cycleId, questions, existingRatings }: Pr
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [currentStep, setCurrentStep] = useState(0)
+  const [isTransitioning, setIsTransitioning] = useState(false)
 
   const [ratings, setRatings] = useState<Record<string, SkillRating>>(() => {
     const initial: Record<string, SkillRating> = {}
@@ -39,20 +40,25 @@ export function SelfAssessmentWizard({ cycleId, questions, existingRatings }: Pr
 
   const canGoNext = isOnCustomStep || currentRating
   const canGoBack = currentStep > 0
-  const isLastStep = currentStep === totalSteps - 1
+
+  const advanceToNext = useCallback(() => {
+    if (currentStep < totalSteps - 1) {
+      setIsTransitioning(true)
+      setTimeout(() => {
+        setCurrentStep(prev => prev + 1)
+        setIsTransitioning(false)
+      }, 300)
+    }
+  }, [currentStep, totalSteps])
 
   function handleRatingSelect(value: SkillRating) {
-    if (!currentQuestion) return
+    if (!currentQuestion || isTransitioning) return
     setRatings(prev => ({
       ...prev,
       [currentQuestion.skill_key]: value
     }))
-  }
-
-  function goNext() {
-    if (currentStep < totalSteps - 1) {
-      setCurrentStep(prev => prev + 1)
-    }
+    // Auto-advance after selection with brief delay for visual feedback
+    setTimeout(advanceToNext, 400)
   }
 
   function goBack() {
@@ -117,7 +123,9 @@ export function SelfAssessmentWizard({ cycleId, questions, existingRatings }: Pr
       )}
 
       {/* Question card */}
-      <div className="rounded-xl border bg-white p-8 shadow-sm">
+      <div className={`rounded-xl border bg-white p-8 shadow-sm transition-all duration-300 ${
+        isTransitioning ? 'opacity-0 translate-x-4' : 'opacity-100 translate-x-0'
+      }`}>
         {!isOnCustomStep && currentQuestion ? (
           <>
             <div className="mb-6">
@@ -199,7 +207,7 @@ export function SelfAssessmentWizard({ cycleId, questions, existingRatings }: Pr
           Back
         </button>
 
-        {isLastStep ? (
+        {isOnCustomStep ? (
           <button
             type="button"
             onClick={handleSubmit}
@@ -212,21 +220,8 @@ export function SelfAssessmentWizard({ cycleId, questions, existingRatings }: Pr
             </svg>
           </button>
         ) : (
-          <button
-            type="button"
-            onClick={goNext}
-            disabled={!canGoNext}
-            className={`flex items-center gap-2 rounded-lg px-8 py-3 font-semibold transition-colors ${
-              canGoNext
-                ? 'bg-primary-600 text-white hover:bg-primary-700'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            }`}
-          >
-            Next
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
+          /* No Next button for skill questions - auto-advances on selection */
+          <div className="w-32" />
         )}
       </div>
 

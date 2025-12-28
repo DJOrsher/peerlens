@@ -34,9 +34,12 @@ app/
 │       └── invite/
 │           ├── page.tsx               # Invite peers
 │           └── InviteForm.tsx
-├── respond/[token]/
-│   ├── page.tsx                       # Public feedback form (no auth)
-│   └── RespondWizard.tsx              # Multi-step responder form
+├── respond/
+│   ├── [token]/                       # Per-invitation link (system-sent)
+│   │   ├── page.tsx                   # Public feedback form (no auth)
+│   │   └── RespondWizard.tsx          # Multi-step responder form
+│   └── c/[cycleToken]/                # Shared cycle link (user-sent)
+│       └── page.tsx                   # Asks for identity, then feedback
 └── report/[cycleId]/
     ├── page.tsx                       # Report page (requires concluded cycle)
     ├── SkillComparison.tsx            # Self vs peer rating comparison
@@ -71,8 +74,14 @@ types/
 | 2 | Requester Flow (Cycles, Self-Assessment, Invitations) | Done |
 | 3 | Responder Flow (Public form, Response submission) | Done |
 | 4 | Report Generation | Done |
-| 5 | Email System (Resend) | Not started |
+| 5 | Email System (Resend) | **Next** |
 | 6 | Conversion & Polish | Not started |
+
+### Recent Additions (Post-Sprint 4)
+- **Dual-token system**: Per-invitation tokens for system emails + per-cycle shared token for manual sharing
+- **Polling**: Cycle detail page auto-refreshes response count every 30 seconds
+- **Individual responses in reports**: Anonymous mode now shows individual responses (shuffled, no identity); Named mode shows with attribution
+- **Auto-advance wizard**: Self-assessment skill questions auto-advance on selection
 
 ## Key Concepts
 
@@ -93,6 +102,28 @@ types/
 ### Rating Scale (Comparative)
 
 - Bottom 20%, Below average, Average, Above average, Top 20%, Can't say
+
+### Invitation Links (Dual-Token System)
+
+Two ways to share feedback links:
+
+| Method | Token Type | Tracking | Use Case |
+|--------|------------|----------|----------|
+| **System sends email** | Per-invitation token | Full (who responded) | Automated flow |
+| **User shares link** | Per-cycle shared token | By responder identity | Manual sharing |
+
+**Per-invitation tokens** (`/respond/[token]`):
+- Created when invitations are added
+- Unique per peer email
+- System sends email with personalized link
+- Tracks exactly who responded
+
+**Shared cycle token** (`/respond/c/[cycleToken]`):
+- One link for entire cycle
+- User copies and shares manually (Slack, email, etc.)
+- Responders optionally provide name/email
+- If they don't identify → fully anonymous
+- If they do → can be attributed (in named mode)
 
 ## Important Patterns
 
@@ -145,10 +176,10 @@ const result = await getReport(cycleId)
 | Table | Purpose |
 |-------|---------|
 | `users` | Supabase auth users |
-| `feedback_cycles` | User's feedback cycles (mode, status) |
+| `feedback_cycles` | User's feedback cycles (mode, status, shared_token) |
 | `self_assessments` | User's self-ratings (1:1 with cycle) |
-| `invitations` | Peers invited to respond (token, status) |
-| `responses` | Peer feedback (ratings, text) |
+| `invitations` | Peers invited to respond (token, status) - for system-sent emails |
+| `responses` | Peer feedback (ratings, text, responder_email/name for shared links) |
 | `custom_questions` | Optional questions added by requester |
 | `skill_template_questions` | Skill definitions from template |
 
@@ -179,17 +210,36 @@ npm run dev          # Start dev server
 npm run build        # Type check + build
 ```
 
-To test responder flow without sending emails:
-1. Create a cycle and add invitations
-2. Get the invitation token from Supabase or cycle detail page
-3. Visit `/respond/[token]` in incognito
+To test responder flow:
+- **Shared link (user-sent):** Copy link from cycle detail page, visit `/respond/c/[cycleToken]`
+- **Personal link (system-sent):** Get invitation token from Supabase, visit `/respond/[token]`
 
-## What's Not Implemented Yet
+## What's Not Implemented Yet (Sprint 5+)
 
-- Email sending (Resend integration)
-- Nurture sequence (responder → requester conversion)
+**Sprint 5 - Email System:**
+- Resend integration (domain setup, API)
+- Invite email template + send feature
+- Reminder email template + send feature (max 2 per invitation)
+- Report ready email (on conclude)
+- No responses email (cron, 5 days with 0 responses)
+- Webhook handler (bounce/complaint handling)
+- Admin notifications
+
+**Sprint 6 - Conversion & Polish:**
+- Post-submit conversion CTA ("Start now" / "Remind me later")
+- Nurture sequence (Day 7, 21, 42 emails)
+- Unsubscribe flow
+- Auto-conclude cron (5 days, 0 responses)
+- Expire invitations cron (30 days)
+- Error handling polish
+- Mobile responsive polish
+- Landing page
+- Production deploy
+
+**Post-MVP:**
 - Payment (Stripe)
-- Cron jobs (auto-conclude, expire invitations)
+- 30-day follow-up email
+- Text generalization for anonymity
 
 ## Reference Docs
 
