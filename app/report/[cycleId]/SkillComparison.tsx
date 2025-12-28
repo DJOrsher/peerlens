@@ -73,7 +73,7 @@ export function SkillComparison({ selfRatings, peerRatings, gaps }: Props) {
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-4">
+              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {/* Self rating */}
                 <div className="rounded-lg bg-gray-50 p-3">
                   <p className="text-xs font-medium text-gray-500 uppercase">Your Rating</p>

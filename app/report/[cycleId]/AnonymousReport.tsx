@@ -36,7 +36,7 @@ export function AnonymousReportView({ report }: Props) {
       {/* Summary */}
       <div className="rounded-lg border bg-white p-6">
         <h2 className="text-lg font-semibold text-gray-900">Summary</h2>
-        <div className="mt-4 grid grid-cols-3 gap-4 text-center">
+        <div className="mt-4 grid grid-cols-1 gap-4 text-center sm:grid-cols-3">
           <div className="rounded-lg bg-gray-50 p-4">
             <p className="text-2xl font-bold text-gray-900">{report.responses_count}</p>
             <p className="text-sm text-gray-500">Responses</p>
@@ -197,11 +197,11 @@ function AnonymousResponseCard({
     <div className="rounded-lg border bg-white overflow-hidden">
       {/* Header - no identity, just metadata */}
       <div className="bg-gray-50 px-6 py-4 border-b">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="font-medium text-gray-900">Respondent #{index + 1}</p>
           </div>
-          <div className="text-right text-sm text-gray-500">
+          <div className="text-sm text-gray-500 sm:text-right">
             <p>{RELATIONSHIP_LABELS[response.relationship] || response.relationship}</p>
             <p>Worked together: {CLOSENESS_LABELS[response.closeness] || response.closeness}</p>
           </div>
@@ -211,7 +211,7 @@ function AnonymousResponseCard({
       {/* Skill ratings */}
       <div className="px-6 py-4 border-b">
         <h4 className="font-medium text-gray-900 mb-3">Skill Ratings</h4>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {PM_SKILLS.map((skill) => {
             const peerRating = response.skill_ratings[skill.id]
             const selfRating = selfRatings[skill.id]

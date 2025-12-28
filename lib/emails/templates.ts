@@ -299,3 +299,162 @@ This email was sent by PeerLens.
 
   return { subject, html, text }
 }
+
+// ===========================================
+// NURTURE EMAILS
+// ===========================================
+
+interface NurtureEmailParams {
+  email: string
+  unsubscribeLink: string
+}
+
+export function nurtureEmail1(params: NurtureEmailParams) {
+  const { unsubscribeLink } = params
+  const startLink = `${APP_URL}/start`
+
+  const subject = 'Ready to get feedback on your PM skills?'
+
+  const html = wrapHtml(`
+    <p>Hi,</p>
+
+    <p>A week ago, you gave feedback to a colleague using PeerLens. Thanks for being a great peer!</p>
+
+    <p>Now here's a thought: <strong>what if you got the same kind of honest feedback about yourself?</strong></p>
+
+    <p>It takes just 5 minutes to set up your own feedback cycle. You'll:</p>
+    <ul>
+      <li>Rate yourself on 6 key PM skills</li>
+      <li>Invite 5-10 peers to give anonymous feedback</li>
+      <li>Get a report comparing your self-perception to how others see you</li>
+    </ul>
+
+    <a href="${startLink}" class="button">Get Your Own Feedback</a>
+
+    <p class="muted">The gap between how you see yourself and how others see you is where growth happens.</p>
+
+    <div class="footer">
+      <p><a href="${unsubscribeLink}">Unsubscribe from these reminders</a></p>
+    </div>
+  `)
+
+  const text = `
+Ready to get feedback on your PM skills?
+
+Hi,
+
+A week ago, you gave feedback to a colleague using PeerLens. Thanks for being a great peer!
+
+Now here's a thought: what if you got the same kind of honest feedback about yourself?
+
+It takes just 5 minutes to set up your own feedback cycle. You'll:
+- Rate yourself on 6 key PM skills
+- Invite 5-10 peers to give anonymous feedback
+- Get a report comparing your self-perception to how others see you
+
+Get your own feedback: ${startLink}
+
+The gap between how you see yourself and how others see you is where growth happens.
+
+---
+Unsubscribe: ${unsubscribeLink}
+`
+
+  return { subject, html, text }
+}
+
+export function nurtureEmail2(params: NurtureEmailParams) {
+  const { unsubscribeLink } = params
+  const startLink = `${APP_URL}/start`
+
+  const subject = 'The feedback you gave... now get your own'
+
+  const html = wrapHtml(`
+    <p>Hi,</p>
+
+    <p>Three weeks ago, you helped a colleague understand their blind spots. That's a gift.</p>
+
+    <p>Here's an uncomfortable truth: <strong>we all have blind spots we can't see.</strong></p>
+
+    <p>The most growth-oriented PMs I know actively seek out feedback. They know that honest input from peers is more valuable than any self-assessment.</p>
+
+    <p>Ready to discover what you can't see about yourself?</p>
+
+    <a href="${startLink}" class="button">Start Your Feedback Cycle</a>
+
+    <p class="muted">It's anonymous. It's honest. It's how you grow.</p>
+
+    <div class="footer">
+      <p><a href="${unsubscribeLink}">Unsubscribe from these reminders</a></p>
+    </div>
+  `)
+
+  const text = `
+The feedback you gave... now get your own
+
+Hi,
+
+Three weeks ago, you helped a colleague understand their blind spots. That's a gift.
+
+Here's an uncomfortable truth: we all have blind spots we can't see.
+
+The most growth-oriented PMs I know actively seek out feedback. They know that honest input from peers is more valuable than any self-assessment.
+
+Ready to discover what you can't see about yourself?
+
+Start your feedback cycle: ${startLink}
+
+It's anonymous. It's honest. It's how you grow.
+
+---
+Unsubscribe: ${unsubscribeLink}
+`
+
+  return { subject, html, text }
+}
+
+export function nurtureEmail3(params: NurtureEmailParams) {
+  const { unsubscribeLink } = params
+  const startLink = `${APP_URL}/start`
+
+  const subject = 'Last reminder: Your peers are ready to help you grow'
+
+  const html = wrapHtml(`
+    <p>Hi,</p>
+
+    <p>This is my last email about getting your own feedback. I promise.</p>
+
+    <p>Here's what I've learned: <strong>the PMs who seek feedback outperform those who don't.</strong> Not because feedback is magic, but because they're constantly calibrating their self-awareness.</p>
+
+    <p>Your colleagues already have opinions about your strengths and growth areas. The question is: do you want to know what they are?</p>
+
+    <a href="${startLink}" class="button">Yes, I Want to Know</a>
+
+    <p>If not, no worries. I'll stop emailing. But the offer stands whenever you're ready.</p>
+
+    <div class="footer">
+      <p><a href="${unsubscribeLink}">Unsubscribe from these reminders</a></p>
+    </div>
+  `)
+
+  const text = `
+Last reminder: Your peers are ready to help you grow
+
+Hi,
+
+This is my last email about getting your own feedback. I promise.
+
+Here's what I've learned: the PMs who seek feedback outperform those who don't. Not because feedback is magic, but because they're constantly calibrating their self-awareness.
+
+Your colleagues already have opinions about your strengths and growth areas. The question is: do you want to know what they are?
+
+Yes, I want to know: ${startLink}
+
+If not, no worries. I'll stop emailing. But the offer stands whenever you're ready.
+
+---
+Unsubscribe: ${unsubscribeLink}
+`
+
+  return { subject, html, text }
+}

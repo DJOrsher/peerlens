@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { submitResponse } from '@/lib/actions/respond'
 import { SKILL_RATING_OPTIONS } from '@/types/database'
 import { RadioGroup } from '@/components/ui/RadioGroup'
+import { ConversionCTA } from '@/components/ConversionCTA'
 import type { ClosenessLevel, RelationshipType, SkillRating, SkillTemplateQuestion } from '@/types/database'
 
 interface CustomQuestion {
@@ -156,29 +157,10 @@ export function RespondWizard({ invitationId, requesterName, cycleMode, question
           </div>
           <h1 className="mt-6 text-2xl font-bold text-gray-900">Thank you!</h1>
           <p className="mt-3 text-gray-600">
-            Your feedback has been submitted anonymously to {requesterName}.
+            Your feedback has been submitted{cycleMode === 'anonymous' ? ' anonymously' : ''} to {requesterName}.
           </p>
 
-          {/* CTA */}
-          <div className="mt-8 rounded-lg border bg-gray-50 p-6 text-left">
-            <h3 className="font-semibold text-gray-900">
-              If 5 colleagues filled this out about you, what would they say?
-            </h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Discover your blind spots and get honest feedback from your peers.
-            </p>
-            <div className="mt-4 flex gap-3">
-              <a
-                href="/start"
-                className="rounded-lg bg-primary-600 px-6 py-2 font-semibold text-white hover:bg-primary-700"
-              >
-                Start now
-              </a>
-              <button className="rounded-lg border border-gray-300 px-6 py-2 font-medium text-gray-700 hover:bg-gray-50">
-                Remind me later
-              </button>
-            </div>
-          </div>
+          <ConversionCTA />
         </div>
       </div>
     )
