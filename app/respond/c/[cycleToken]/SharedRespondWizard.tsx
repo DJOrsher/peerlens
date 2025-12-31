@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useCallback } from 'react'
 import { submitSharedResponse } from '@/lib/actions/respond'
 import { SKILL_RATING_OPTIONS } from '@/types/database'
 import { RadioGroup } from '@/components/ui/RadioGroup'
@@ -42,6 +42,7 @@ export function SharedRespondWizard({ cycleId, requesterName, cycleMode, questio
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isTransitioning, setIsTransitioning] = useState(false)
 
   // Identity (optional for shared links)
   const [responderName, setResponderName] = useState('')
@@ -127,6 +128,40 @@ export function SharedRespondWizard({ cycleId, requesterName, cycleMode, questio
     }
   }
 
+  // Auto-advance for skill ratings
+  const advanceSkill = useCallback(() => {
+    if (currentSkillIndex < questions.length - 1) {
+      setIsTransitioning(true)
+      setTimeout(() => {
+        setCurrentSkillIndex(prev => prev + 1)
+        setIsTransitioning(false)
+      }, 300)
+    } else {
+      // Move to next step after last skill
+      setIsTransitioning(true)
+      setTimeout(() => {
+        const nextIndex = currentStepIndex + 1
+        if (nextIndex < steps.length) {
+          setStep(steps[nextIndex])
+        }
+        setIsTransitioning(false)
+      }, 300)
+    }
+  }, [currentSkillIndex, questions.length, currentStepIndex, steps])
+
+  function handleSkillRatingSelect(value: SkillRating) {
+    if (isTransitioning) return
+    const currentQuestion = questions[currentSkillIndex]
+    if (!currentQuestion) return
+
+    setSkillRatings(prev => ({
+      ...prev,
+      [currentQuestion.skill_key]: value
+    }))
+    // Auto-advance after selection
+    setTimeout(advanceSkill, 400)
+  }
+
   async function handleSubmit() {
     setError(null)
 
@@ -197,7 +232,9 @@ export function SharedRespondWizard({ cycleId, requesterName, cycleMode, questio
       )}
 
       {/* Step content */}
-      <div className="rounded-xl border bg-white p-8 shadow-sm">
+      <div className={`rounded-xl border bg-white p-8 shadow-sm transition-all duration-300 ${
+        isTransitioning ? 'opacity-0 translate-x-4' : 'opacity-100 translate-x-0'
+      }`}>
         {step === 'identity' && (
           <>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
@@ -298,10 +335,7 @@ export function SharedRespondWizard({ cycleId, requesterName, cycleMode, questio
             <RadioGroup
               options={SKILL_RATING_OPTIONS}
               value={skillRatings[questions[currentSkillIndex].skill_key] || ''}
-              onChange={(value) => setSkillRatings(prev => ({
-                ...prev,
-                [questions[currentSkillIndex].skill_key]: value as SkillRating
-              }))}
+              onChange={handleSkillRatingSelect}
               name="skill-rating"
             />
           </>
@@ -464,13 +498,16 @@ export function SharedRespondWizard({ cycleId, requesterName, cycleMode, questio
           >
             {isPending ? 'Submitting...' : 'Submit feedback'}
           </button>
+        ) : step === 'skills' ? (
+          /* No Next button for skills - auto-advances on selection */
+          <div className="w-32" />
         ) : (
           <button
             type="button"
             onClick={goNext}
-            disabled={!canGoNext() && !(step === 'skills' && skillRatings[questions[currentSkillIndex]?.skill_key])}
+            disabled={!canGoNext()}
             className={`flex items-center gap-2 rounded-lg px-8 py-3 font-semibold transition-colors ${
-              canGoNext() || (step === 'skills' && skillRatings[questions[currentSkillIndex]?.skill_key])
+              canGoNext()
                 ? 'bg-primary-600 text-white hover:bg-primary-700'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
