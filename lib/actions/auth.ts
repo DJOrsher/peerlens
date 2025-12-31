@@ -35,6 +35,34 @@ export async function signInWithMagicLink(formData: FormData) {
 }
 
 /**
+ * Sign in with Google OAuth
+ * Returns the OAuth URL to redirect the user to
+ */
+export async function signInWithGoogle() {
+  const supabase = await createClient()
+  const headersList = await headers()
+  const origin = headersList.get('origin') || process.env.NEXT_PUBLIC_URL
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${origin}/api/auth/callback`,
+    },
+  })
+
+  if (error) {
+    console.error('Google OAuth error:', error)
+    return { error: 'Failed to sign in with Google. Please try again.' }
+  }
+
+  if (data.url) {
+    redirect(data.url)
+  }
+
+  return { error: 'Failed to get OAuth URL' }
+}
+
+/**
  * Sign out the current user
  * Business logic: clears session, redirects to home
  */
