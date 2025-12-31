@@ -28,6 +28,7 @@ const CLOSENESS_OPTIONS = [
   { value: 'somewhat', label: 'Somewhat closely', description: 'We collaborate regularly on projects' },
   { value: 'not_much', label: 'Not very closely', description: 'We interact occasionally' },
   { value: 'barely', label: 'Barely', description: 'We rarely work together directly' },
+  { value: 'not_sure', label: 'Not sure', description: 'I can\'t really say', separatorBefore: true },
 ] as const
 
 const RELATIONSHIP_OPTIONS = [
@@ -36,6 +37,7 @@ const RELATIONSHIP_OPTIONS = [
   { value: 'manager', label: 'Manager', description: 'I manage this person or they manage me' },
   { value: 'peer_pm', label: 'Peer PM', description: 'Fellow product manager' },
   { value: 'other', label: 'Other', description: 'None of the above' },
+  { value: 'not_sure', label: 'Not sure', description: 'I\'m not certain of the relationship', separatorBefore: true },
 ] as const
 
 export function SharedRespondWizard({ cycleId, requesterName, cycleMode, questions, customQuestions }: Props) {
