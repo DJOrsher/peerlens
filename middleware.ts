@@ -49,7 +49,8 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   // Protected routes - require authentication
-  const protectedPaths = ['/dashboard', '/start', '/report']
+  // Note: /admin routes also require admin email check (done in layout)
+  const protectedPaths = ['/dashboard', '/start', '/report', '/admin']
   const isProtectedRoute = protectedPaths.some(path => pathname.startsWith(path))
 
   if (isProtectedRoute && !user) {

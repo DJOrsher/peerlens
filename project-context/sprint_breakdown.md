@@ -16,6 +16,7 @@
 | 4 | Report | View report (both modes), conclude cycle |
 | 5 | Email System | Receive real emails (invites, reminders, report ready) |
 | 6 | Conversion & Polish | Nurture sequence, error handling, launch prep |
+| 7 | Admin Templates | Manage question templates, custom rating scales |
 
 ---
 
@@ -641,6 +642,233 @@ After each sprint, run through these:
 - [ ] Auto-conclude works
 - [ ] Mobile works
 - [ ] Production deploy works
+
+---
+
+## Sprint 7: Admin Template Management
+
+**Goal:** Admin interface to manage question templates with per-question dynamic answer options
+
+**Prerequisites:**
+- Sprint 6 complete
+- Admin email(s) decided
+
+### Deliverables
+
+| # | Task | Test |
+|---|------|------|
+| 7.1 | Admin access control | `ADMIN_EMAILS` env var, `requireAdmin()` helper |
+| 7.2 | Database migration | `question_options` table, `is_default` column, question type |
+| 7.3 | Admin layout | `/admin` route with sidebar navigation |
+| 7.4 | Template list page | See all templates with status |
+| 7.5 | Create template form | Name, slug, description |
+| 7.6 | Edit template page | Update metadata, set default, toggle active |
+| 7.7 | Question list | View questions with drag-and-drop reorder |
+| 7.8 | Question CRUD | Add, edit, delete questions with type selection |
+| 7.9 | Answer options editor | Configure per-question answer options |
+| 7.10 | Preset scales | Rating, Agreement, Frequency scales to copy from |
+
+### Database Changes
+
+```sql
+-- Add question type to support different answer formats
+ALTER TABLE skill_template_questions
+  ADD COLUMN question_type TEXT DEFAULT 'rating'
+  CHECK (question_type IN ('rating', 'single_choice', 'multi_choice', 'text', 'scale'));
+
+-- New table for per-question answer options
+CREATE TABLE question_options (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  question_id UUID NOT NULL REFERENCES skill_template_questions(id) ON DELETE CASCADE,
+  value TEXT NOT NULL,
+  label TEXT NOT NULL,
+  description TEXT,
+  option_order INTEGER NOT NULL,
+  is_separator BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(question_id, value)
+);
+
+-- Add default flag to templates
+ALTER TABLE skill_templates ADD COLUMN is_default BOOLEAN DEFAULT false;
+CREATE UNIQUE INDEX idx_skill_templates_default ON skill_templates(is_default) WHERE is_default = true;
+```
+
+**Question Types:**
+- `rating` - Comparative scale (Bottom 20% → Top 20%) - RadioGroup with descriptions
+- `single_choice` - Pick one option - RadioGroup (radio buttons)
+- `multi_choice` - Pick multiple options - Checkboxes
+- `text` - Free text response - Textarea
+- `scale` - Numeric scale (1-5, 1-10, etc.) - Slider or segmented control
+
+**Preset Scales (stored in code, copyable to questions):**
+- **Rating:** Bottom 20%, Below average, Average, Above average, Top 20%, Not sure
+- **Agreement:** Strongly disagree, Disagree, Neutral, Agree, Strongly agree
+- **Frequency:** Never, Rarely, Sometimes, Often, Always
+
+### Implementation Plan
+
+**Phase 1: Foundation (7.1-7.3)**
+```
+Files to create:
+- lib/admin.ts                    # isAdmin(), requireAdmin()
+- app/admin/layout.tsx            # Admin layout with sidebar
+- app/admin/page.tsx              # Template list dashboard
+
+Modify:
+- middleware.ts                   # Add /admin to protected routes
+
+Environment variables:
+- ADMIN_EMAILS=admin@example.com,other@example.com
+```
+
+**Phase 2: Template CRUD (7.4-7.6)**
+```
+Files to create:
+- lib/actions/admin-templates.ts  # All admin server actions
+- app/admin/templates/new/page.tsx
+- app/admin/templates/[id]/page.tsx
+- app/admin/components/TemplateCard.tsx
+```
+
+**Phase 3: Question Management (7.7-7.8)**
+```
+Files to create:
+- app/admin/components/QuestionList.tsx
+- app/admin/components/QuestionForm.tsx
+
+Features:
+- Drag-and-drop reorder
+- Add/edit question modal
+- Delete with confirmation
+```
+
+**Phase 4: Answer Options (7.9-7.10)**
+```
+Files to create:
+- app/admin/components/AnswerOptionsEditor.tsx
+- lib/preset-scales.ts            # Rating, Agreement, Frequency presets
+
+Modify:
+- lib/actions/templates.ts        # Add getQuestionOptions()
+
+Features:
+- Question type selector (rating, single_choice, text, etc.)
+- "Copy from preset" dropdown (Rating, Agreement, Frequency)
+- Add/remove/reorder options
+- Preview how options appear to responders
+```
+
+### Acceptance Criteria
+
+**Test Admin Access:**
+```
+1. Set ADMIN_EMAILS=your@email.com
+2. Login with admin email
+3. Visit /admin → see template dashboard
+4. Login with non-admin email
+5. Visit /admin → redirected to /dashboard
+```
+
+**Test Template CRUD:**
+```
+1. Visit /admin
+2. See existing PM template with badge "Default"
+3. Click "Create Template"
+4. Enter name: "Engineering Manager", slug auto-generates
+5. Save → see new template in list
+6. Click into template → edit page
+7. Toggle "Active" off → template disabled
+8. Click "Set as Default" → badge moves
+```
+
+**Test Question Management:**
+```
+1. Edit a template
+2. See 6 questions listed
+3. Drag question 3 to position 1 → order saved
+4. Click "Add Question"
+5. Fill: skill_key=leadership, skill_name=Leadership, etc.
+6. Save → question appears in list
+7. Click question → edit modal
+8. Change description → save
+9. Click delete on a question → confirmation → deleted
+```
+
+**Test Answer Options:**
+```
+1. Edit a template → click on a question
+2. See question type dropdown (default: "rating")
+3. See current options (Rating preset)
+4. Click "Copy from preset" → select "Agreement"
+5. Options change to: Strongly disagree → Strongly agree
+6. Edit an option label: "Neutral" → "Neither agree nor disagree"
+7. Add new option: "N/A"
+8. Save → options saved
+9. Change question type to "text" → options hidden
+10. Test in responder flow → see custom options per question
+```
+
+### Technical Notes
+
+- Admin uses service role client (bypasses RLS)
+- Questions without custom options fall back to preset based on `question_type`
+- Each question has its own answer options (not template-wide)
+- Questions support `use_for_self_assessment` and `use_for_peer_feedback` flags
+- Question types determine UI rendering (RadioGroup, checkboxes, textarea, etc.)
+- Designed for future "user selects template" feature
+
+### Server Actions (`lib/actions/admin-templates.ts`)
+
+```typescript
+// Templates
+getTemplates()
+getTemplateForAdmin(id)
+createTemplate(data)
+updateTemplate(id, data)
+deleteTemplate(id)
+setDefaultTemplate(id)
+
+// Questions
+createQuestion(templateId, data)  // data includes question_type
+updateQuestion(id, data)
+deleteQuestion(id)
+reorderQuestions(templateId, questionIds[])
+
+// Answer Options (per-question)
+getQuestionOptions(questionId)
+saveQuestionOptions(questionId, options[])
+copyPresetToQuestion(questionId, preset: 'rating' | 'agreement' | 'frequency')
+```
+
+### Sprint 7 Checklist
+- [ ] Admin access works (email whitelist)
+- [ ] Template list shows all templates
+- [ ] Create new template works
+- [ ] Edit template metadata works
+- [ ] Set default template works
+- [ ] Question reorder works (drag-and-drop)
+- [ ] Add/edit/delete questions work
+- [ ] Question type selection works
+- [ ] Per-question answer options work
+- [ ] Preset scales can be copied to questions
+- [ ] Responder sees question-specific options
+
+---
+
+## Post-MVP (Not in These Sprints)
+
+Deferred to later:
+
+- Payment / Stripe integration
+- 30-day follow-up email
+- Text generalization for anonymity
+- Account deletion flow
+- Multiple cycles history view
+- "Compare to previous cycle" feature
+- Team/company accounts
+- **User template selection** (pick template when creating cycle)
+- **Custom question picker** (choose individual questions from templates)
 
 ---
 

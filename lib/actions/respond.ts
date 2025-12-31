@@ -3,7 +3,8 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { responseSchema, getFirstError } from '@/lib/validation'
 import type { ResponseInput } from '@/lib/validation'
-import type { FeedbackMode } from '@/types/database'
+import type { FeedbackMode, SkillTemplateQuestionWithOptions, QuestionOption } from '@/types/database'
+import { SKILL_RATING_OPTIONS } from '@/types/database'
 
 export interface InvitationWithCycle {
   id: string
@@ -104,12 +105,14 @@ export async function getInvitationByToken(token: string): Promise<InvitationWit
 }
 
 /**
- * Get template questions for responder
+ * Get template questions for responder with their answer options
  */
-export async function getTemplateQuestionsForResponder(templateId: string) {
+export async function getTemplateQuestionsForResponder(
+  templateId: string
+): Promise<SkillTemplateQuestionWithOptions[]> {
   const supabase = createServiceClient()
 
-  const { data, error } = await supabase
+  const { data: questions, error } = await supabase
     .from('skill_template_questions')
     .select('*')
     .eq('template_id', templateId)
@@ -121,7 +124,47 @@ export async function getTemplateQuestionsForResponder(templateId: string) {
     return []
   }
 
-  return data || []
+  if (!questions || questions.length === 0) {
+    return []
+  }
+
+  // Get options for all questions
+  const questionIds = questions.map((q) => q.id)
+  const { data: options, error: optionsError } = await supabase
+    .from('question_options')
+    .select('*')
+    .in('question_id', questionIds)
+    .order('option_order')
+
+  if (optionsError) {
+    console.error('Get question options error:', optionsError)
+  }
+
+  // Map options to questions, with fallback to default rating options
+  const optionsByQuestion = (options || []).reduce(
+    (acc, opt) => {
+      if (!acc[opt.question_id]) acc[opt.question_id] = []
+      acc[opt.question_id].push(opt)
+      return acc
+    },
+    {} as Record<string, QuestionOption[]>
+  )
+
+  const defaultOptions: QuestionOption[] = SKILL_RATING_OPTIONS.map((opt, idx) => ({
+    id: `default-${idx}`,
+    question_id: '',
+    value: opt.value,
+    label: opt.label,
+    description: opt.description,
+    option_order: idx + 1,
+    is_separator: 'separatorBefore' in opt ? opt.separatorBefore : false,
+    created_at: new Date().toISOString(),
+  }))
+
+  return questions.map((q) => ({
+    ...q,
+    options: optionsByQuestion[q.id]?.length > 0 ? optionsByQuestion[q.id] : defaultOptions,
+  })) as SkillTemplateQuestionWithOptions[]
 }
 
 /**

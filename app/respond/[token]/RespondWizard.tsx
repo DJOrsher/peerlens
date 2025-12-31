@@ -2,10 +2,9 @@
 
 import { useState, useTransition, useCallback } from 'react'
 import { submitResponse } from '@/lib/actions/respond'
-import { SKILL_RATING_OPTIONS } from '@/types/database'
 import { RadioGroup } from '@/components/ui/RadioGroup'
 import { ConversionCTA } from '@/components/ConversionCTA'
-import type { ClosenessLevel, RelationshipType, SkillRating, SkillTemplateQuestion } from '@/types/database'
+import type { ClosenessLevel, RelationshipType, SkillRating, SkillTemplateQuestionWithOptions } from '@/types/database'
 
 interface CustomQuestion {
   id: string
@@ -17,7 +16,7 @@ interface Props {
   invitationId: string
   requesterName: string
   cycleMode: 'anonymous' | 'named'
-  questions: SkillTemplateQuestion[]
+  questions: SkillTemplateQuestionWithOptions[]
   customQuestions: CustomQuestion[]
 }
 
@@ -280,7 +279,12 @@ export function RespondWizard({ invitationId, requesterName, cycleMode, question
             </p>
 
             <RadioGroup
-              options={SKILL_RATING_OPTIONS}
+              options={questions[currentSkillIndex].options.map(opt => ({
+                value: opt.value,
+                label: opt.label,
+                description: opt.description || undefined,
+                separatorBefore: opt.is_separator,
+              }))}
               value={skillRatings[questions[currentSkillIndex].skill_key] || ''}
               onChange={handleSkillRatingSelect}
               name="skill-rating"

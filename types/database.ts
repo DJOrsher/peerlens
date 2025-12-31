@@ -56,6 +56,13 @@ export type EmailEventType =
   | 'bounced'
   | 'complained'
 
+export type QuestionType =
+  | 'rating'
+  | 'single_choice'
+  | 'multi_choice'
+  | 'text'
+  | 'scale'
+
 // ============================================
 // DATABASE TABLES
 // ============================================
@@ -198,6 +205,7 @@ export interface SkillTemplate {
   slug: string
   description: string | null
   is_active: boolean
+  is_default: boolean
   created_at: string
   updated_at: string
 }
@@ -209,13 +217,33 @@ export interface SkillTemplateQuestion {
   skill_name: string
   skill_description: string
   question_order: number
+  question_type: QuestionType
   use_for_self_assessment: boolean
   use_for_peer_feedback: boolean
   created_at: string
 }
 
+export interface QuestionOption {
+  id: string
+  question_id: string
+  value: string
+  label: string
+  description: string | null
+  option_order: number
+  is_separator: boolean
+  created_at: string
+}
+
+export interface SkillTemplateQuestionWithOptions extends SkillTemplateQuestion {
+  options: QuestionOption[]
+}
+
 export interface SkillTemplateWithQuestions extends SkillTemplate {
   questions: SkillTemplateQuestion[]
+}
+
+export interface SkillTemplateWithQuestionsAndOptions extends SkillTemplate {
+  questions: SkillTemplateQuestionWithOptions[]
 }
 
 // Cycle details types (for getCycleWithDetails)
