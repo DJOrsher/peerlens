@@ -19,12 +19,14 @@ export type RelationshipType =
   | 'manager'
   | 'peer_pm'
   | 'other'
+  | 'not_sure'
 
 export type ClosenessLevel =
   | 'very_close'
   | 'somewhat'
   | 'not_much'
   | 'barely'
+  | 'not_sure'
 
 export type SkillRating =
   | 'bottom_20'
@@ -183,7 +185,7 @@ export const SKILL_RATING_OPTIONS = [
   { value: 'average', label: 'Average', description: 'About the same as most PMs' },
   { value: 'above_average', label: 'Above average', description: 'Better than most PMs I\'ve worked with' },
   { value: 'top_20', label: 'Top 20%', description: 'Among the best I\'ve seen' },
-  { value: 'cant_say', label: 'Can\'t say', description: 'I don\'t have enough visibility' },
+  { value: 'cant_say', label: 'Not sure', description: 'I haven\'t seen enough to judge', separatorBefore: true },
 ] as const
 
 // ============================================
