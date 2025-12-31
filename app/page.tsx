@@ -155,7 +155,11 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t bg-white px-6 py-8">
         <div className="mx-auto max-w-6xl text-center text-sm text-gray-500">
-          <p>PeerLens — Peer feedback for Product Managers</p>
+          <div className="flex justify-center gap-6">
+            <Link href="/privacy" className="hover:text-gray-700">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-gray-700">Terms of Service</Link>
+          </div>
+          <p className="mt-4">PeerLens — Peer feedback for Product Managers</p>
         </div>
       </footer>
     </main>
