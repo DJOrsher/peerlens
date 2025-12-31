@@ -15,20 +15,6 @@ const RATING_LABELS: Record<string, string> = {
   cant_say: "Can't say",
 }
 
-const RELATIONSHIP_LABELS: Record<string, string> = {
-  team: 'Team member',
-  cross_functional: 'Cross-functional',
-  manager: 'Manager',
-  peer_pm: 'Peer PM',
-  other: 'Other',
-}
-
-const CLOSENESS_LABELS: Record<string, string> = {
-  very_close: 'Very closely',
-  somewhat: 'Somewhat',
-  not_much: 'Not much',
-  barely: 'Barely',
-}
 
 export function AnonymousReportView({ report }: Props) {
   return (
@@ -195,17 +181,9 @@ function AnonymousResponseCard({
 }) {
   return (
     <div className="rounded-lg border bg-white overflow-hidden">
-      {/* Header - no identity, just metadata */}
+      {/* Header - fully anonymous, no identifying metadata */}
       <div className="bg-gray-50 px-6 py-4 border-b">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="font-medium text-gray-900">Respondent #{index + 1}</p>
-          </div>
-          <div className="text-sm text-gray-500 sm:text-right">
-            <p>{RELATIONSHIP_LABELS[response.relationship] || response.relationship}</p>
-            <p>Worked together: {CLOSENESS_LABELS[response.closeness] || response.closeness}</p>
-          </div>
-        </div>
+        <p className="font-medium text-gray-900">Response #{index + 1}</p>
       </div>
 
       {/* Skill ratings */}

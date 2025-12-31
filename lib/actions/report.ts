@@ -34,8 +34,7 @@ export interface PeerRatingData {
 }
 
 export interface AnonymousResponseData {
-  relationship: string
-  closeness: string
+  // No relationship/closeness - these could help identify respondents
   skill_ratings: Record<string, SkillRating>
   keep_doing: string
   improve: string
@@ -291,11 +290,10 @@ function generateAnonymousReport(
     customAnswers[customQuestions[i]] = shuffleArray(answers)
   }
 
-  // Individual responses (shuffled to prevent order-based identification, no identity info)
+  // Individual responses (shuffled to prevent order-based identification)
+  // Deliberately omit relationship/closeness to protect anonymity
   const anonymousResponses: AnonymousResponseData[] = shuffleArray(
     responses.map(r => ({
-      relationship: r.relationship,
-      closeness: r.closeness,
       skill_ratings: r.skill_ratings || {},
       keep_doing: r.keep_doing,
       improve: r.improve,
