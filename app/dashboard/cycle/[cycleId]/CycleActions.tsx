@@ -4,6 +4,9 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { sendInvitations, concludeCycle } from '@/lib/actions/cycles'
+import { deductCycleCredits } from '@/lib/actions/credits'
+import { CYCLE_COST } from '@/lib/credits-constants'
+import { CreditPurchaseModal } from '@/components/CreditPurchaseModal'
 
 interface Props {
   cycleId: string
@@ -12,6 +15,8 @@ interface Props {
   hasUnsentInvitations: boolean
   invitationEmails: string[]
   requesterName?: string
+  currentCredits: number
+  isFirstSend: boolean // true if no invitations have been sent yet
 }
 
 export function CycleActions({
@@ -20,16 +25,21 @@ export function CycleActions({
   responsesCount,
   hasUnsentInvitations,
   invitationEmails,
-  requesterName = 'A colleague'
+  requesterName = 'A colleague',
+  currentCredits,
+  isFirstSend,
 }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [showTemplate, setShowTemplate] = useState(false)
   const [showConcludeConfirm, setShowConcludeConfirm] = useState(false)
+  const [showCreditModal, setShowCreditModal] = useState(false)
+  const [credits, setCredits] = useState(currentCredits)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [copied, setCopied] = useState(false)
 
   const isConcluded = cycleStatus === 'concluded'
+  const needsCredits = isFirstSend && credits < CYCLE_COST
 
   const feedbackUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/respond/${cycleId}`
@@ -54,7 +64,27 @@ PeerLens`
       return
     }
 
+    // Check if this is first send and needs credits
+    if (needsCredits) {
+      setShowCreditModal(true)
+      return
+    }
+
     startTransition(async () => {
+      // Deduct credits if this is first send
+      if (isFirstSend) {
+        const creditResult = await deductCycleCredits()
+        if (!creditResult.success) {
+          if (creditResult.error === 'Not enough credits') {
+            setShowCreditModal(true)
+            return
+          }
+          setMessage({ type: 'error', text: creditResult.error || 'Failed to process credits' })
+          return
+        }
+        setCredits(creditResult.credits || 0)
+      }
+
       const result = await sendInvitations(cycleId)
 
       if (result.error) {
@@ -69,6 +99,10 @@ PeerLens`
 
       router.refresh()
     })
+  }
+
+  function handleCreditsAdded(newCredits: number) {
+    setCredits(newCredits)
   }
 
   function handleCopyTemplate() {
@@ -256,6 +290,14 @@ PeerLens`
           </div>
         </div>
       )}
+
+      {/* Credit Purchase Modal */}
+      <CreditPurchaseModal
+        isOpen={showCreditModal}
+        onClose={() => setShowCreditModal(false)}
+        currentCredits={credits}
+        onCreditsAdded={handleCreditsAdded}
+      />
     </>
   )
 }

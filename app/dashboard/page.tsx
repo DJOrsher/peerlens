@@ -1,11 +1,14 @@
 import { requireAuth } from '@/lib/actions/auth'
 import { signOut } from '@/lib/actions/auth'
 import { getUserCycles } from '@/lib/actions/cycles'
+import { getUserCredits } from '@/lib/actions/credits'
 import Link from 'next/link'
 
 export default async function DashboardPage() {
   const user = await requireAuth()
   const cycles = await getUserCycles()
+  const credits = await getUserCredits()
+  const hasAnyCycles = cycles.length > 0
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -16,6 +19,14 @@ export default async function DashboardPage() {
             PeerLens
           </Link>
           <div className="flex items-center gap-4">
+            {hasAnyCycles && (
+              <div className="flex items-center gap-2 rounded-lg bg-gray-100 px-3 py-1.5">
+                <svg className="h-4 w-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.736 6.979C9.208 6.193 9.696 6 10 6c.304 0 .792.193 1.264.979a1 1 0 001.715-1.029C12.279 4.784 11.232 4 10 4s-2.279.784-2.979 1.95c-.285.475-.507 1-.67 1.55H6a1 1 0 000 2h.013a9.358 9.358 0 000 1H6a1 1 0 100 2h.351c.163.55.385 1.075.67 1.55C7.721 15.216 8.768 16 10 16s2.279-.784 2.979-1.95a1 1 0 10-1.715-1.029c-.472.786-.96.979-1.264.979-.304 0-.792-.193-1.264-.979a4.265 4.265 0 01-.264-.521H10a1 1 0 100-2H8.017a7.36 7.36 0 010-1H10a1 1 0 100-2H8.472c.08-.185.17-.364.264-.521z" />
+                </svg>
+                <span className="text-sm font-medium text-gray-700">{credits} credits</span>
+              </div>
+            )}
             <span className="text-sm text-gray-600">{user.email}</span>
             <form action={signOut}>
               <button
