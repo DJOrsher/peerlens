@@ -3,16 +3,24 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { requireAuth } from './auth'
+import { deductCycleCredits } from './credits'
 import type { FeedbackMode, SkillRating, CycleWithDetails, CycleInvitation, CycleCustomQuestion } from '@/types/database'
 
 const PM_TEMPLATE_ID = '00000000-0000-0000-0000-000000000001'
 
 /**
  * Create a new feedback cycle
+ * Deducts credits at cycle creation time
  */
 export async function createCycle(mode: FeedbackMode, templateId: string = PM_TEMPLATE_ID) {
   const user = await requireAuth()
   const supabase = await createClient()
+
+  // Deduct credits first
+  const creditResult = await deductCycleCredits()
+  if (!creditResult.success) {
+    return { error: creditResult.error || 'Not enough credits' }
+  }
 
   const { data: cycle, error } = await supabase
     .from('feedback_cycles')

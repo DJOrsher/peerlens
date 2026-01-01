@@ -1,6 +1,5 @@
 import { requireAuth } from '@/lib/actions/auth'
 import { getCycleWithDetails } from '@/lib/actions/cycles'
-import { getUserCredits } from '@/lib/actions/credits'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { PM_SKILLS, SKILL_RATING_OPTIONS } from '@/types/database'
@@ -17,10 +16,7 @@ export default async function CycleDetailPage({ params }: Props) {
   await requireAuth()
   const { cycleId } = await params
 
-  const [cycle, credits] = await Promise.all([
-    getCycleWithDetails(cycleId),
-    getUserCredits(),
-  ])
+  const cycle = await getCycleWithDetails(cycleId)
   if (!cycle) {
     notFound()
   }
@@ -173,8 +169,6 @@ export default async function CycleDetailPage({ params }: Props) {
           responsesCount={cycle.responses_count}
           hasUnsentInvitations={invitations.some(i => !i.sent_at)}
           invitationEmails={invitations.filter(i => !i.sent_at).map(i => i.email)}
-          currentCredits={credits}
-          isFirstSend={!invitations.some(i => i.sent_at)}
         />
       </div>
     </main>
