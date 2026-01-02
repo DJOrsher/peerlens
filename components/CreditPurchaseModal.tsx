@@ -18,41 +18,76 @@ export function CreditPurchaseModal({
   onCreditsAdded,
 }: CreditPurchaseModalProps) {
   const [isProcessing, setIsProcessing] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [creditsAdded, setCreditsAdded] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   if (!isOpen) return null
 
   async function handlePurchase() {
     setIsProcessing(true)
-    setMessage(null)
+    setError(null)
 
     const result = await addFreeCredits()
 
     if (result.success) {
-      setMessage({ type: 'success', text: result.message || 'Credits added!' })
+      setCreditsAdded(true)
       if (onCreditsAdded && result.credits !== undefined) {
         onCreditsAdded(result.credits)
       }
-      // Auto-close after success
-      setTimeout(() => {
-        onClose()
-      }, 3000)
     } else {
-      setMessage({ type: 'error', text: result.message || 'Failed to add credits' })
+      setError(result.message || 'Failed to add credits')
     }
 
     setIsProcessing(false)
   }
 
+  // Success state - gift celebration
+  if (creditsAdded) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+        <div className="relative z-10 w-full max-w-md rounded-xl bg-white p-8 shadow-2xl mx-4">
+          <div className="text-center">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary-100 to-primary-200">
+              <svg className="h-10 w-10 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+              </svg>
+            </div>
+
+            <h2 className="mt-6 text-2xl font-bold text-gray-900">
+              You got {CREDIT_PACKAGE_AMOUNT} free credits!
+            </h2>
+
+            <p className="mt-3 text-gray-600">
+              We&apos;re still building our payment system, so this one&apos;s on us. Enjoy your feedback cycle!
+            </p>
+
+            <div className="mt-6 rounded-lg bg-primary-50 border border-primary-100 p-4">
+              <div className="text-sm text-primary-700">
+                Your new balance: <span className="font-bold">{currentCredits + CREDIT_PACKAGE_AMOUNT} credits</span>
+              </div>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="mt-6 w-full rounded-lg bg-primary-600 px-4 py-3 font-medium text-white hover:bg-primary-700"
+            >
+              Start my feedback cycle
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Default state - purchase prompt
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50"
         onClick={onClose}
       />
 
-      {/* Modal */}
       <div className="relative z-10 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl mx-4">
         <button
           onClick={onClose}
@@ -78,59 +113,42 @@ export function CreditPurchaseModal({
             You have <span className="font-semibold">{currentCredits} credits</span>, but running a feedback cycle costs <span className="font-semibold">{CYCLE_COST} credits</span>.
           </p>
 
-          {message && (
-            <div className={`mt-4 rounded-lg p-3 text-sm ${
-              message.type === 'success'
-                ? 'bg-green-50 text-green-700'
-                : 'bg-red-50 text-red-700'
-            }`}>
-              {message.text}
+          {error && (
+            <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              {error}
             </div>
           )}
 
-          {!message?.type || message.type === 'error' ? (
-            <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
-              <div className="flex items-center justify-between">
-                <div className="text-left">
-                  <div className="font-semibold text-gray-900">
-                    {CREDIT_PACKAGE_AMOUNT} Credits
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    Run one complete feedback cycle
-                  </div>
+          <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div className="flex items-center justify-between">
+              <div className="text-left">
+                <div className="font-semibold text-gray-900">
+                  {CREDIT_PACKAGE_AMOUNT} Credits
                 </div>
-                <div className="text-2xl font-bold text-gray-900">
-                  ${CREDIT_PACKAGE_PRICE}
+                <div className="text-sm text-gray-500">
+                  Run one complete feedback cycle
                 </div>
               </div>
+              <div className="text-2xl font-bold text-gray-900">
+                ${CREDIT_PACKAGE_PRICE}
+              </div>
             </div>
-          ) : null}
+          </div>
 
           <div className="mt-6 flex gap-3">
-            {!message?.type || message.type === 'error' ? (
-              <>
-                <button
-                  onClick={onClose}
-                  className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handlePurchase}
-                  disabled={isProcessing}
-                  className="flex-1 rounded-lg bg-primary-600 px-4 py-2.5 font-medium text-white hover:bg-primary-700 disabled:opacity-50"
-                >
-                  {isProcessing ? 'Processing...' : 'Buy credits'}
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={onClose}
-                className="w-full rounded-lg bg-primary-600 px-4 py-2.5 font-medium text-white hover:bg-primary-700"
-              >
-                Got it!
-              </button>
-            )}
+            <button
+              onClick={onClose}
+              className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handlePurchase}
+              disabled={isProcessing}
+              className="flex-1 rounded-lg bg-primary-600 px-4 py-2.5 font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+            >
+              {isProcessing ? 'Processing...' : 'Buy credits'}
+            </button>
           </div>
         </div>
       </div>
