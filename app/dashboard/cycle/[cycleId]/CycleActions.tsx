@@ -20,7 +20,7 @@ export function CycleActions({
   responsesCount,
   hasUnsentInvitations,
   invitationEmails,
-  requesterName = 'A colleague'
+  requesterName = 'A colleague',
 }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
