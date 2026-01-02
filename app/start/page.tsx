@@ -5,9 +5,17 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { StartPageClient } from './StartPageClient'
 
-export default async function StartPage() {
+interface Props {
+  searchParams: Promise<{ error?: string }>
+}
+
+export default async function StartPage({ searchParams }: Props) {
   await requireAuth()
-  const credits = await getUserCredits()
+  const [credits, params] = await Promise.all([
+    getUserCredits(),
+    searchParams,
+  ])
+  const showCreditModal = params.error === 'no_credits'
 
   async function handleModeSelection(formData: FormData) {
     'use server'
@@ -25,7 +33,7 @@ export default async function StartPage() {
   }
 
   return (
-    <StartPageClient currentCredits={credits}>
+    <StartPageClient currentCredits={credits} showCreditModalInitially={showCreditModal}>
       <main className="min-h-screen bg-gray-50">
         {/* Header */}
         <header className="border-b bg-white">
