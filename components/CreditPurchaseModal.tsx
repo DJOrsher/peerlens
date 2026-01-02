@@ -18,7 +18,7 @@ export function CreditPurchaseModal({
   onCreditsAdded,
 }: CreditPurchaseModalProps) {
   const [isProcessing, setIsProcessing] = useState(false)
-  const [creditsAdded, setCreditsAdded] = useState(false)
+  const [newBalance, setNewBalance] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   if (!isOpen) return null
@@ -30,7 +30,7 @@ export function CreditPurchaseModal({
     const result = await addFreeCredits()
 
     if (result.success) {
-      setCreditsAdded(true)
+      setNewBalance(result.credits ?? CREDIT_PACKAGE_AMOUNT)
       if (onCreditsAdded && result.credits !== undefined) {
         onCreditsAdded(result.credits)
       }
@@ -42,7 +42,7 @@ export function CreditPurchaseModal({
   }
 
   // Success state - gift celebration
-  if (creditsAdded) {
+  if (newBalance !== null) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center">
         <div className="absolute inset-0 bg-black/50" onClick={onClose} />
@@ -64,7 +64,7 @@ export function CreditPurchaseModal({
 
             <div className="mt-6 rounded-lg bg-primary-50 border border-primary-100 p-4">
               <div className="text-sm text-primary-700">
-                Your new balance: <span className="font-bold">{currentCredits + CREDIT_PACKAGE_AMOUNT} credits</span>
+                Your new balance: <span className="font-bold">{newBalance} credits</span>
               </div>
             </div>
 
